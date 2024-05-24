@@ -4,11 +4,13 @@ import sys
 from os import getenv
 
 from aiogram.fsm.state import StatesGroup, State
+from aiogram.types import Message, CallbackQuery
+from aiogram.fsm.context import FSMContext
 
 import caches, config, database_functions, utils, keyboard_functions
 from config import dp, bot, form_router
 from bots.FBSBookerBot import FBSBookerBot
-from bots.ScehduleBot import ScehduleBot
+from bots.ScheduleBot import ScheduleBot
 
 class BookingBot(StatesGroup): 
     end_of_booking = State()
@@ -25,7 +27,7 @@ class BookingBot(StatesGroup):
         example_booking = {}
 
         # update database 
-        
+
 
         # call ScehduleBot for google sheets 
         await ScehduleBot.start_update_schedule(message, state, example_booking)

@@ -1,2 +1,9 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+bots/__pycache__/
+
+# Distribution / packaging
+lib/
+
 # API keys 
 .env

@@ -19,7 +19,7 @@ from bots.BookingBot import BookingBot
 @dp.message(CommandStart())
 async def command_start_handler(message: Message, state: FSMContext) -> None:
     #TO DO 
-    pass
+    await message.answer("hello user")
 
 # '/book' command 
 @dp.message(Command('book'))
