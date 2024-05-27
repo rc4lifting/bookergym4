@@ -9,7 +9,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery
 
 import caches, config, database_functions, utils
-from config import dp, bot, form_router, logger
+from config import dp, bot, booking_router, logger
 from bots.BookingBot import BookingBot
 
 # '/start' command 
