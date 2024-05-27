@@ -36,6 +36,7 @@ class BookingBot(StatesGroup):
                 "telehandle": "hello123",
                 "roomNumber": "19-23"
             },
+            "date": "30/05/2024"
             "startTime": "1730",
             "duration": "90"
         }
