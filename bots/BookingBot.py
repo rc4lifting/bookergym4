@@ -15,6 +15,7 @@ from bots.ScheduleBot import ScheduleBot
 class BookingBot(StatesGroup): 
     end_of_booking = State()
 
+    # form process
     async def start_booking(message: Message, state: FSMContext):
         await state.set_state(BookingBot.end_of_booking)
         await message.answer("booking start")
@@ -26,6 +27,7 @@ class BookingBot(StatesGroup):
     async def end_booking(message: Message, state: FSMContext):
         await message.answer("booking is being processed")
 
+        # sample data
         booking = {
             "bookedUserId": message.chat.id,
             "buddyId": 1233423424,
@@ -34,8 +36,8 @@ class BookingBot(StatesGroup):
                 "telehandle": "hello123",
                 "roomNumber": "19-23"
             },
-            "startTime": 2,
-            "endTime": 3
+            "startTime": "1730",
+            "duration": "90"
         }
 
         # call FBSBookerBot for booking on FBS
@@ -48,6 +50,8 @@ class BookingBot(StatesGroup):
 
         path = f"/slots/{slot_id}"
         database_functions.create_data(path, booking)
+
+        # TO DO: check + update/ add booking user's room number and name 
         
         # increment counter
         database_functions.increment_booking_counter()
