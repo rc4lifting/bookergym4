@@ -24,6 +24,9 @@ schedule_client_email = os.getenv('SCHEDULE_CLIENT_EMAIL')
 schedule_client_id = os.getenv('SCHEDULE_CLIENT_ID')
 schedule_client_x509_cert_url = os.getenv("SCHEDULE_CLIENT_X509_CERT_URL")
 
+utownfbs_username = os.getenv('UTOWNFBS_USERNAME')
+utownfbs_password = os.getenv('UTOWNFBS_PASSWORD')
+
 
 # Firebase Service Account Config
 firebase_config = {
@@ -53,4 +56,9 @@ schedule_credentials = {
   "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
   "client_x509_cert_url": schedule_client_x509_cert_url,
   "universe_domain": "googleapis.com"
+}
+
+utownfbs_login = {
+  "username": utownfbs_username,
+  "password": utownfbs_password
 }

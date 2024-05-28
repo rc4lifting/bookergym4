@@ -24,9 +24,18 @@ def read_data(path: str) -> dict:
 
     return data
 
+# update entire directory - dictionary
 def update_data(path: str, data: dict):
     ref = db.reference(path)
     ref.update(data)
+
+# update particular field 
+def set_data(path: str, data):
+    ref = db.reference(path)
+    try:
+        ref.set(data)
+    except TypeError:
+        print("data is not json-serializable")
 
 def delete_data(path: str):
     ref = db.reference(path)
