@@ -65,7 +65,6 @@ class ScheduleBot(StatesGroup):
         duration = data['booking_details']['duration']
 
         cells_to_fill = await ScheduleBot.booking_str_to_cells(booking_date, start_time, duration)
-        print(cells_to_fill)
 
         request_body = {
             "valueInputOption": "RAW",
@@ -77,7 +76,8 @@ class ScheduleBot(StatesGroup):
             body=request_body
         )
 
-        response = request.execute()
+        # response = request.execute()
+        print("successfully added to schedule!")
 
         await state.clear()
     
