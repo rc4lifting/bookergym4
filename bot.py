@@ -7,6 +7,7 @@ from aiogram.enums import ParseMode
 from aiogram.filters import CommandStart, Command
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery
+from aiogram.types.error_event import ErrorEvent
 
 import caches, config, database_functions, utils
 from config import dp, bot, booking_router, logger
@@ -35,10 +36,11 @@ async def book(message: Message, state: FSMContext):
     await BookingBot.start_booking(message, state)
 
 # global error handling
-async def global_error_handler(update: types.Update, exception: Exception):
-    logger.info("caught unexpected error in global handler")
-    if update.message:
-        await update.message.reply("An unexpected error occurred. Please try again later.")
+@dp.error()
+async def global_error_handler(event: ErrorEvent):
+    print(f"caught unexpected error in global handler: {event.exception}")
+    if event.update.message:
+        await event.update.message.answer("unexpected message occured, send /exco to notify us about the issue")
     return True
     
 async def main() -> None:
