@@ -15,6 +15,8 @@ from bots.ScheduleBot import ScheduleBot
 class BookingBot(StatesGroup):
     # states in booking form  
     get_booker_name = State()
+    get_booking_date = State()  # Added missing state
+    get_booking_time = State()  # Added missing state
     end_of_booking = State()
 
     # form process
@@ -26,44 +28,29 @@ class BookingBot(StatesGroup):
     @booking_router.message(get_booker_name)
     async def booker_name(message: Message, state: FSMContext):
         await state.update_data(booker_name=message.text)
-        await state.set_state(BookingBot.end_of_booking) 
+        await state.set_state(BookingBot.get_booking_date)
         print("booker name collected!")
-        await BookingBot.end_booking(message, state)
+        await message.answer("Please provide the booking date (DD/MM/YYYY)")
 
-    # TO DO: booking flow in this class
-    # data all in state.data
-
-#hamziadded
-     @booking_router.message(get_booking_time)
-
-    async def booking_time(message: Message, state: FSMContext):
-
-        await state.update_data(booking_time=message.text)
-
-        await state.set_state(BookingBot.end_of_booking)
-
-        print("Booking date and time collected!")
-
-        await BookingBot.end_booking(message, state)
-
-#hamziadded
     @booking_router.message(get_booking_date)
-
     async def booking_date(message: Message, state: FSMContext):
-
         await state.update_data(booking_date=message.text)
-
         await state.set_state(BookingBot.get_booking_time)
+        await message.answer("Please provide the booking start time (HHMM)")
 
-        await message.answer("Please provide the booking start time (HHMM)
-
-    # restrict start time on sundays until 2300 and only allow 1h
+    @booking_router.message(get_booking_time)
+    async def booking_time(message: Message, state: FSMContext):
+        await state.update_data(booking_time=message.text)
+        await state.set_state(BookingBot.end_of_booking)
+        print("Booking date and time collected!")
+        await BookingBot.end_booking(message, state)
 
     @booking_router.message(end_of_booking)
     async def end_booking(message: Message, state: FSMContext):
         print("collected all info, processing booking now")
 
-        # sample data - ideally this is alr in data['booking_details']
+        data = await state.get_data()
+        
         booking_details = {
             "bookedUserId": message.chat.id,
             "buddyId": 1233423424,
@@ -72,15 +59,13 @@ class BookingBot(StatesGroup):
                 "telehandle": "hello123",
                 "roomNumber": "19-23"
             },
-            "date": "05/06/2024",
-            "startTime": "2330",
+            "date": data['booking_date'],
+            "startTime": data['booking_time'],
             "duration": 90
         }
         await state.update_data(booking_details=booking_details)
 
-        # clear out all unecessary data in state.data
-
-        data = await state.get_data()
+        # clear out all unnecessary data in state.data
 
         # storing name and room number into db logic: if inside, replace it, if not add it 
         database_functions.set_data(f"/users/{message.chat.id}/name", data['booker_name'])
@@ -96,8 +81,7 @@ class BookingBot(StatesGroup):
         except Exception as e:
             # this part not tested 
             print(f"Following Error has occured when automating web booking: {e}")
-            end_time_string = utils.cal_end_time(booking_details['startTime'], booking_details['duration'])
-            await message.answer(f"An error has occured when booking your slot:\n\n{booking_details_string}\n\nSend /exco to report the issue to us")
+            await message.answer(f"An error has occurred when booking your slot:\n\n{booking_details_string}\n\nSend /exco to report the issue to us")
             await state.clear()
             
         # call Schedule for booking on FBS
@@ -106,8 +90,6 @@ class BookingBot(StatesGroup):
             state = new_state
         except Exception as e:
             print(f"Following Error has occured when updating schedule: {e}")
-            end_time_string = utils.cal_end_time(booking_details['startTime'], booking_details['duration'])
-            booking_time_string = booking_details['startTime'] + " - " + end_time_string
             await message.answer(f"Your booking below has been confirmed\n\n{booking_details_string}\n\n" + 
                 "However, schedule has failed to update your slot. Send /exco to report the issue to us")
             await state.clear()
