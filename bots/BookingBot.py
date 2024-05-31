@@ -48,9 +48,9 @@ class BookingBot(StatesGroup):
                 "telehandle": "hello123",
                 "roomNumber": "19-23"
             },
-            "date": "31/05/2024",
+            "date": "05/06/2024",
             "startTime": "2330",
-            "duration": 60
+            "duration": 90
         }
         await state.update_data(booking_details=booking_details)
 

@@ -62,9 +62,12 @@ class ScheduleBot(StatesGroup):
 
         cells_to_fill = await ScheduleBot.booking_str_to_cells(booking_date, start_time, duration)
 
+        # TODO: get the sheet name for the current week
+        sheet_name = "Sheet1!"
+
         request_body = {
             "valueInputOption": "RAW",
-            "data": [{"range": "Sheet1!" + cell, "values": [[data['booker_name']]]} for cell in cells_to_fill] # to change to data['name']
+            "data": [{"range": sheet_name + cell, "values": [[data['booker_name']]]} for cell in cells_to_fill] # to change to data['name']
         }
 
         request = ScheduleBot.spreadsheets.values().batchUpdate(
@@ -72,10 +75,10 @@ class ScheduleBot(StatesGroup):
             body=request_body
         )
 
-        # try:
-        #     response = request.execute()
-        # except Exception as e:
-        #     raise e
+        try:
+            response = request.execute()
+        except Exception as e:
+            raise e
         print("successfully added to schedule!")
 
         return state
