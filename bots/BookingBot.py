@@ -32,6 +32,30 @@ class BookingBot(StatesGroup):
     # TO DO: booking flow in this class
     # data all in state.data
 
+#hamziadded
+     @booking_router.message(get_booking_time)
+
+    async def booking_time(message: Message, state: FSMContext):
+
+        await state.update_data(booking_time=message.text)
+
+        await state.set_state(BookingBot.end_of_booking)
+
+        print("Booking date and time collected!")
+
+        await BookingBot.end_booking(message, state)
+
+#hamziadded
+    @booking_router.message(get_booking_date)
+
+    async def booking_date(message: Message, state: FSMContext):
+
+        await state.update_data(booking_date=message.text)
+
+        await state.set_state(BookingBot.get_booking_time)
+
+        await message.answer("Please provide the booking start time (HHMM)
+
     # restrict start time on sundays until 2300 and only allow 1h
 
     @booking_router.message(end_of_booking)
@@ -75,6 +99,11 @@ class BookingBot(StatesGroup):
 
         print("booking successfully processed!")
         await message.answer("Your booking has been successfully processed.")
+
+
+
+
+        
 
 
         
