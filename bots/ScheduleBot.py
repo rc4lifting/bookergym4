@@ -28,7 +28,7 @@ class ScheduleBot(StatesGroup):
         # returns out a list of cells to fill in
         # booking_date: dd/mm/yyyy, start_time: hhmm, duration: minutes
         start_datetime = datetime.strptime(booking_date + " " + start_time, "%d/%m/%Y %H%M")
-        number_of_cells = duration // 30
+        number_of_cells = int(duration) // 30
         day_of_week = start_datetime.date().weekday()
 
         # find first cell
@@ -56,9 +56,9 @@ class ScheduleBot(StatesGroup):
         print("adding to schedule...")
         data = await state.get_data()
 
-        booking_date = data['booking_details']['date']
-        start_time = data['booking_details']['startTime']
-        duration = data['booking_details']['duration']
+        booking_date = data['booking_date']
+        start_time = data['booking_start_time']
+        duration = data['booking_duration']
 
         cells_to_fill = await ScheduleBot.booking_str_to_cells(booking_date, start_time, duration)
 

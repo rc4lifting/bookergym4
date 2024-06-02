@@ -10,7 +10,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery
 from aiogram.types.error_event import ErrorEvent
 
-import caches, config, database_functions, utils
+import caches, config, database_functions, utils, bot_messages
 from config import dp, bot, booking_router, logger
 from bots.BookingBot import BookingBot
 
@@ -29,22 +29,12 @@ async def command_start_handler(message: Message, state: FSMContext) -> None:
         }
         database_functions.create_data(path, data)
         
-    await message.answer(
-            text=(
-                f"Hello, <b>{user.first_name}</b>!\n\n"
-                "What can this bot do?\n"
-                "Use this bot to book a slot at the RC4 gym!\n"
-                "/book - book your gym slot now!\n"
-                "/cancel - cancel slots to free them up for others :)\n\n"
-                "/register - register your email before booking\n"
-                "/verify - verify email for authentication\n"
-                "/delete - delete your account and data\n\n"
-                "/schedule - view available time slots here\n"
-                "/history - view your slots for the week\n\n"
-                "/exco - contact the exco on any queries, feedback and damages"
-            ),
-            parse_mode=ParseMode.HTML
-        )
+    await message.answer(bot_messages.START_MESSAGE.format(user.first_name), parse_mode=ParseMode.HTML)
+
+# '/help' command
+@dp.message(Command('help'))
+async def help(message: Message) -> None:
+    await message.answer(bot_messages.HELP_MESSAGE, parse_mode=ParseMode.HTML)
 
 # '/book' command 
 @dp.message(Command('book'))
@@ -55,24 +45,13 @@ async def book(message: Message, state: FSMContext):
 # '/exco' command
 @dp.message(Command('exco'))
 async def exco(message: Message) -> None:
-    await message.answer(
-        text=(
-            "These exco will be happy to help!\n"
-            "Ben - @benjaminseowww\n"
-            "Jedi - @JediKoh\n"
-            "Hamzi - @zzimha\n"
-            "Justin - @jooostwtk"
-        ),
-        parse_mode=ParseMode.HTML
-    )
+    await message.answer(bot_messages.EXCO_MESSAGE,parse_mode=ParseMode.HTML)
 
-# global error handling
+# TODO: fix global error handling
 @dp.error()
 async def global_error_handler(event: ErrorEvent):
     logger.error(f"caught unexpected error in global handler: {event.exception}")
-    if event.update.message:
-        await event.update.message.answer("unexpected message occurred, send /exco to notify us about the issue")
-    return True
+    await bot.send_message(event.update.event.chat.id, "unexpected message occurred, send /exco to notify us about the issue")
     
 async def main() -> None:
     await dp.start_polling(bot)

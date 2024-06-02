@@ -16,8 +16,8 @@ def create_inline(builder, row_width=1):
     return keyboard
 
 # Time related functions 
-def cal_end_time(start_time: str, duration: int) -> str:
-    end_time = (datetime.strptime(start_time, "%H%M") + timedelta(minutes=duration)).time()
+def cal_end_time(start_time: str, duration: str) -> str:
+    end_time = (datetime.strptime(start_time, "%H%M") + timedelta(minutes=int(duration))).time()
     return end_time.strftime("%H%M")
 
 def create_booking_date_keyboard():
@@ -25,24 +25,17 @@ def create_booking_date_keyboard():
     date_options = { (today + timedelta(days=i)).strftime("%A %d %B %Y"): (today + timedelta(days=i)).strftime("%d/%m/%Y") for i in range(7) }
     return create_inline(date_options, row_width=2)
 
-def create_booking_time_keyboard():
-    time_ranges = {
-        "0000 - 0530": "0000-0530",
-        "0600 - 1130": "0600-1130",
-        "1200 - 1730": "1200-1730",
-        "1800 - 2330": "1800-2330"
-    }
-    return create_inline(time_ranges, row_width=1)
+def create_start_time_keyboard(start_time_str: str, end_time_str: str, interval: int):
+    start_time = datetime.strptime(start_time_str, "%H%M")
+    end_time = datetime.strptime(end_time_str, "%H%M")
+    interval = timedelta(minutes=interval)
+    
+    start_times = {}
 
-def create_start_time_keyboard():
-    start_times = { f"{hour:02d}00": f"{hour:02d}00" for hour in range(6, 18) }
+    while start_time <= end_time:
+        start_times[start_time.strftime("%H%M")] = start_time.strftime("%H%M")
+        start_time += interval
+
     return create_inline(start_times, row_width=3)
-
-def create_duration_keyboard():
-    durations = {
-        "1 hour": "60",
-        "1 hour 30 mins": "90"
-    }
-    return create_inline(durations, row_width=1)
 
 
