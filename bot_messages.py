@@ -9,12 +9,12 @@ START_MESSAGE = "Hello, <b>{}</b>! Looks like we have another gym goer right her
 
 HELP_MESSAGE = "What can this bot do?\n" +\
                "/book - book your gym slot now!\n" +\
+               "/schedule - view available time slots here\n" +\
                "/exco - contact the exco on any queries, feedback and damages"
                #"/cancel - cancel slots to free them up for others :)\n\n" +\
                #"/register - register your email before booking\n" +\
                #"/verify - verify email for authentication\n" +\
                #"/delete - delete your account and data\n\n" +\
-               #"/schedule - view available time slots here\n" +\
                #"/history - view your slots for the week\n\n" +\
 
 EXCO_MESSAGE = "Contact us! we are happy to help!\n" +\
@@ -22,6 +22,9 @@ EXCO_MESSAGE = "Contact us! we are happy to help!\n" +\
                "Hamzi - @zzimha\n"
                 #"Jedi - @JediKoh\n" +\
                #"Justin - @jooostwtk"
+
+SCHEDULE_MESSAGE = "Here are the available slots for the week:\n" +\
+                   "https://docs.google.com/spreadsheets/d/1r1r0I0HvKDivze8YMj9BNZfs4p8Z957XWc498QUaSU0/edit?usp=sharing"
 
 # FORM 
 FORM_DECLARATION = "• I understand it is my personal responsibility to be in good physical health to carry out the sessions " +\

@@ -49,6 +49,11 @@ async def book(message: Message, state: FSMContext):
 async def exco(message: Message) -> None:
     await message.answer(bot_messages.EXCO_MESSAGE,parse_mode=ParseMode.HTML)
 
+# '/schedule' command
+@dp.message(Command('schedule'))
+async def schedule(message: Message) -> None:
+    await message.answer(bot_messages.SCHEDULE_MESSAGE,parse_mode=ParseMode.HTML)
+
 # TODO: fix global error handling
 @dp.error()
 async def global_error_handler(event: ErrorEvent):

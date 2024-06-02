@@ -4,7 +4,6 @@ from aiogram.fsm.context import FSMContext
 from aiogram.enums import ParseMode
 
 from config import booking_router
-from caches import logger
 import database_functions, utils, bot_messages
 from bots.FBSBookerBot import FBSBookerBot
 from bots.ScheduleBot import ScheduleBot
@@ -220,7 +219,7 @@ class BookingBot(StatesGroup):
         
             #database_functions.increment_booking_counter()
             print("Booking successfully processed!")
-            await message.answer(f"Your booking has been successfully processed!\n\nHere are your slot details\n{booking_details_string}")
+            await message.answer(f"Your booking has been successfully processed!\n\nHere are your slot details\n{booking_details_string}\n\nSend /schedule to view the updated schedule")
             await state.clear()
 
 
