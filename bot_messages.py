@@ -24,15 +24,16 @@ EXCO_MESSAGE = "Contact us! we are happy to help!\n" +\
                #"Justin - @jooostwtk"
 
 # FORM 
-FORM_DECLARATION = "I understand it is my personal responsibility to be in good physical health to carry out the sessions " +\
+FORM_DECLARATION = "• I understand it is my personal responsibility to be in good physical health to carry out the sessions " +\
                    "in the gym and bring personal medication if needed\n\n" +\
-                   "I understand that all users must clean all equipment used before and after use."
+                   "• I understand that all users must clean all equipment used before and after use.\n" +\
+                   "• I have read and declared all the above to be true.\n"
 
 
 BOOKING_USER_DETAILS_STRING = "Name: {}\n" +\
-                              "Telegram Handle: {}\n" +\
-                              "Room Number: {}\n\n" +\
+                              "Telegram Handle: @{}\n" +\
+                              "Room Number: #{}\n\n" +\
                               "Buddy Name: {}\n" +\
-                              "Buddy Telegram Handle: {}\n" +\
-                              "Buddy Room Number: {}"
+                              "Buddy Telegram Handle: @{}\n" +\
+                              "Buddy Room Number: #{}"
 BOOKING_DATETIME_STRING = "Date: {}\nTime: {} - {}"

@@ -22,10 +22,12 @@ logger = logging.getLogger(__name__)
 @dp.message(CommandStart())
 async def command_start_handler(message: Message, state: FSMContext) -> None:
     user = message.from_user
+    telehandle = user.username
+
     path = f"/users/{message.chat.id}"
     if not database_functions.user_exists(message.chat.id):
         data = {
-            "telehandle": f"{user.username}",
+            "telehandle": f"{telehandle}",
         }
         database_functions.create_data(path, data)
         
@@ -51,7 +53,16 @@ async def exco(message: Message) -> None:
 @dp.error()
 async def global_error_handler(event: ErrorEvent):
     logger.error(f"caught unexpected error in global handler: {event.exception}")
-    await bot.send_message(event.update.event.chat.id, "unexpected message occurred, send /exco to notify us about the issue")
+    
+    if event.update.message:
+        chat_id = event.update.message.chat.id
+    elif event.update.callback_query:
+        chat_id = event.update.callback_query.message.chat.id
+
+    if chat_id:
+        await bot.send_message(chat_id, "unexpected message occurred, send /exco to notify us about the issue")
+
+    return True
     
 async def main() -> None:
     await dp.start_polling(bot)

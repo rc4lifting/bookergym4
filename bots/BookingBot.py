@@ -1,14 +1,10 @@
-import asyncio
-import logging
-import sys
-from os import getenv
-
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
 from aiogram.enums import ParseMode
 
 from config import booking_router
+from caches import logger
 import database_functions, utils, bot_messages
 from bots.FBSBookerBot import FBSBookerBot
 from bots.ScheduleBot import ScheduleBot
@@ -17,8 +13,10 @@ class BookingBot(StatesGroup):
     # states in booking form  
     get_booker_name = State()
     get_room_number = State()
+    check_room_number = State()
     get_buddy_name = State()
     get_buddy_room_number = State()
+    check_buddy_room_number = State()
     get_buddy_telegram_handle = State()
     get_booking_date = State()
     get_booking_time_range = State()
@@ -27,6 +25,8 @@ class BookingBot(StatesGroup):
     confirm_booking_details = State()
     confirm_declaration = State()
     end_of_booking = State()
+
+    # TODO: checking of responses validity
 
     # form process
     async def start_booking(message: Message, state: FSMContext):
@@ -37,14 +37,25 @@ class BookingBot(StatesGroup):
     @booking_router.message(get_booker_name)
     async def booker_name(message: Message, state: FSMContext):
         await state.update_data(booker_name=message.text)
+        await state.update_data(telehandle=message.from_user.username)
         await state.set_state(BookingBot.get_room_number)
         await message.answer("What's your room number? (e.g. 14-12A)")
 
     @booking_router.message(get_room_number)
     async def room_number(message: Message, state: FSMContext):
         await state.update_data(booker_room_number=message.text)
-        await state.set_state(BookingBot.get_buddy_name)
-        await message.answer("What is your buddy's full name? (e.g. Tan Yong Jun)")
+        await state.set_state(BookingBot.check_room_number)
+        await BookingBot.room_number_checking(message, state)
+
+    @booking_router.message(check_room_number)
+    async def room_number_checking(message: Message, state: FSMContext):
+        if utils.is_valid_room_number(message.text):
+            await state.update_data(booker_room_number=message.text)
+            await state.set_state(BookingBot.get_buddy_name)
+            await message.answer("What is your buddy's full name? (e.g. Tan Yong Jun)")
+        else:
+            print("entered invalid room number!")
+            await message.answer("Room Number not valid, please re-enter your room number: (e.g. 14-12A)")
 
     @booking_router.message(get_buddy_name)
     async def buddy_name(message: Message, state: FSMContext):
@@ -52,16 +63,32 @@ class BookingBot(StatesGroup):
         await state.set_state(BookingBot.get_buddy_room_number)
         await message.answer("What's your buddy's room number? (e.g. 17-16)")
 
+
     @booking_router.message(get_buddy_room_number)
     async def buddy_room_number(message: Message, state: FSMContext):
         await state.update_data(buddy_room_number=message.text)
-        await state.set_state(BookingBot.get_buddy_telegram_handle)
-        await message.answer("What is your buddy's telegram handle?")
+        await state.set_state(BookingBot.check_buddy_room_number)
+        await BookingBot.buddy_room_number_checking(message, state)
+    
+    @booking_router.message(check_buddy_room_number)
+    async def buddy_room_number_checking(message: Message, state: FSMContext):
+        if utils.is_valid_room_number(message.text):
+            await state.update_data(booker_room_number=message.text)
+            await state.set_state(BookingBot.get_buddy_name)
+            await message.answer("What is your buddy's telegram handle? (w/o the @ symbol)")
+        else:
+            print("entered invalid buddy room number!")
+            await message.answer("Room Number not valid, please re-enter your room number: (e.g. 14-12A)")
     
     # TODO: apply 1-8 days logic here 
     @booking_router.message(get_buddy_telegram_handle)
     async def buddy_telegram_handle(message: Message, state: FSMContext):
-        await state.update_data(buddy_telegram_handle=message.text)
+        telehandle = message.text
+
+        if telehandle.startswith("@"):
+            telehandle = telehandle[1:]
+
+        await state.update_data(buddy_telegram_handle=telehandle)
         await state.set_state(BookingBot.get_booking_date)
         await message.answer("Please select the booking date:", reply_markup=utils.create_inline(
             {"03 June 2024": "03/06/2024", "04 June 2024": "04/06/2024", "05 June 2024": "05/06/2024", "06 June 2024": "06/06/2024", "07 June 2024": "07/06/2024", "08 June 2024": "08/06/2024", "09 June 2024": "09/06/2024", "10 June 2024": "10/06/2024"}, row_width=2))
@@ -106,12 +133,13 @@ class BookingBot(StatesGroup):
         data = await state.get_data()
 
         booking_user_details_string = bot_messages.BOOKING_USER_DETAILS_STRING.format(
-            data['booker_name'], message.from_user.username, data['booker_room_number'],
+            data['booker_name'], data['telehandle'], data['booker_room_number'],
             data['buddy_name'], data['buddy_telegram_handle'], data['buddy_room_number']
         )
 
         end_time_string = utils.cal_end_time(data['booking_start_time'], data['booking_duration'])
-        booking_datetime_string = bot_messages.BOOKING_DATETIME_STRING.format(data['booking_date'], data['booking_start_time'], end_time_string)
+        booking_date_string = utils.get_formatted_date_from_string(data['booking_date'])
+        booking_datetime_string = bot_messages.BOOKING_DATETIME_STRING.format(booking_date_string, data['booking_start_time'], end_time_string)
         await state.set_state(BookingBot.confirm_declaration)
         await message.answer(
             text=(
@@ -134,7 +162,7 @@ class BookingBot(StatesGroup):
                 f"{bot_messages.FORM_DECLARATION}"
             ),
             parse_mode=ParseMode.HTML,
-            reply_markup=utils.create_inline({"I have read the above and declare them to be true": "Declared"}, row_width=1)
+            reply_markup=utils.create_inline({"Read and Declared": "Declared"}, row_width=1)
         )
         
 
@@ -147,8 +175,8 @@ class BookingBot(StatesGroup):
 
         # TODO: add buddyid if buddy exists in db
         # Storing name and room number into db logic: if inside, replace it, if not add it 
-        # database_functions.set_data(f"/users/{message.chat.id}/name", data.get('booker_name', ''))
-        # database_functions.set_data(f"/users/{message.chat.id}/roomNumber", data.get('booker_room_number', ''))
+        #database_functions.set_data(f"/users/{message.chat.id}/name", data.get('booker_name', ''))
+        #database_functions.set_data(f"/users/{message.chat.id}/roomNumber", data.get('booker_room_number', ''))
 
         # updating booking details
         booking_details = {
@@ -165,7 +193,8 @@ class BookingBot(StatesGroup):
         }
 
         end_time_string = utils.cal_end_time(booking_details['startTime'], booking_details['duration'])
-        booking_details_string = bot_messages.BOOKING_DATETIME_STRING.format(booking_details['date'], booking_details['startTime'], end_time_string)
+        booking_date_string = utils.get_formatted_date_from_string(booking_details['date'])
+        booking_details_string = bot_messages.BOOKING_DATETIME_STRING.format(booking_date_string, booking_details['startTime'], end_time_string)
 
         # Call FBSBookerBot for booking on FBS
         try: 
@@ -187,9 +216,9 @@ class BookingBot(StatesGroup):
             await state.clear()
         else: 
             slot_id = database_functions.get_booking_counter() + 1
-            # database_functions.create_data(f"/slots/{slot_id}", booking_details)
+            #database_functions.create_data(f"/slots/{slot_id}", booking_details)
         
-            # database_functions.increment_booking_counter()
+            #database_functions.increment_booking_counter()
             print("Booking successfully processed!")
             await message.answer(f"Your booking has been successfully processed!\n\nHere are your slot details\n{booking_details_string}")
             await state.clear()
