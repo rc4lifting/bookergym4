@@ -29,7 +29,7 @@ SCHEDULE_MESSAGE = "Here are the available slots for the week:\n" +\
 # FORM 
 FORM_DECLARATION = "• I understand it is my personal responsibility to be in good physical health to carry out the sessions " +\
                    "in the gym and bring personal medication if needed\n\n" +\
-                   "• I understand that all users must clean all equipment used before and after use.\n" +\
+                   "• I understand that all users must clean all equipment used before and after use.\n\n" +\
                    "• I have read and declared all the above to be true.\n"
 
 

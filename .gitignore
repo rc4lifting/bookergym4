@@ -6,3 +6,5 @@ lib/
 
 # API keys 
 .env
+
+.DS_Store

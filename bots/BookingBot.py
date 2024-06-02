@@ -72,8 +72,8 @@ class BookingBot(StatesGroup):
     @booking_router.message(check_buddy_room_number)
     async def buddy_room_number_checking(message: Message, state: FSMContext):
         if utils.is_valid_room_number(message.text):
-            await state.update_data(booker_room_number=message.text)
-            await state.set_state(BookingBot.get_buddy_name)
+            await state.update_data(buddy_room_number=message.text)
+            await state.set_state(BookingBot.get_buddy_telegram_handle)
             await message.answer("What is your buddy's telegram handle? (w/o the @ symbol)")
         else:
             print("entered invalid buddy room number!")
