@@ -9,7 +9,12 @@ from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 
 # logger
-logging.basicConfig(level=logging.INFO, stream=sys.stdout)
+logging.basicConfig(
+    level=logging.INFO, 
+    stream=sys.stdout, 
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
 logger = logging.getLogger(__name__)
 
 # All handlers should be attached to the Router (or Dispatcher)

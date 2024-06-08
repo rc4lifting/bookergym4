@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 # '/start' command 
 @dp.message(CommandStart())
 async def command_start_handler(message: Message, state: FSMContext) -> None:
+    logger.info("Received /start command")
     user = message.from_user
     telehandle = user.username
 
@@ -70,10 +71,12 @@ async def global_error_handler(event: ErrorEvent):
     return True
     
 async def main() -> None:
+    logger.info("Starting bot")
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
 
 

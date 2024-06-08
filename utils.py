@@ -38,8 +38,6 @@ def is_valid_room_number(room_number: str) -> bool:
         room = int(match.group(2))
         suite_letter = match.group(3)
 
-        print(floor, room, suite_letter)
-
         if 3 <= floor <= 17 and 1 <= room <= 27 and \
             ((room in [1, 11, 12] and suite_letter != '') or (room not in [1, 11, 12] and suite_letter == '')):
             valid = True

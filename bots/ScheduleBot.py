@@ -53,7 +53,7 @@ class ScheduleBot(StatesGroup):
 
     # bot functions 
     async def update_schedule(message: Message, state: FSMContext):
-        print("adding to schedule...")
+        logger.info("adding to schedule...")
         data = await state.get_data()
 
         booking_date = data['booking_date']
@@ -79,7 +79,7 @@ class ScheduleBot(StatesGroup):
             response = request.execute()
         except Exception as e:
             raise e
-        print("successfully added to schedule!")
+        logger.info("successfully added to schedule!")
 
         return state
     
