@@ -13,6 +13,7 @@ from aiogram.types.error_event import ErrorEvent
 import caches, config, database_functions, utils, bot_messages
 from config import dp, bot, booking_router, logger
 from bots.BookingBot import BookingBot
+from bots.FBSBookerBot import FBSBookerBot
 
 # Logging configuration
 logging.basicConfig(level=logging.INFO)
@@ -47,13 +48,32 @@ async def book(message: Message, state: FSMContext):
 
 # '/exco' command
 @dp.message(Command('exco'))
-async def exco(message: Message) -> None:
+async def exco(message: Message, state: FSMContext) -> None:
     await message.answer(bot_messages.EXCO_MESSAGE,parse_mode=ParseMode.HTML)
 
 # '/schedule' command
 @dp.message(Command('schedule'))
-async def schedule(message: Message) -> None:
+async def schedule(message: Message, state: FSMContext) -> None:
     await message.answer(bot_messages.SCHEDULE_MESSAGE,parse_mode=ParseMode.HTML)
+
+# '/web' command: use for testing web automation, delete when all done 
+@dp.message(Command('web'))
+async def web(message: Message, state: FSMContext) -> None:
+    await state.set_state(FBSBookerBot.start_of_web_booking)
+    await bot.send_message(message.chat.id, "Starting web booking process")
+    await state.update_data(
+        booker_name='Web Test Booking',
+        telehandle='benjaminseowww',
+        booker_room_number= '17-16',
+        buddy_name= 'test',
+        buddy_room_number='04-23',
+        buddy_telegram_handle='abc',
+        booking_date='14/06/2024',
+        booking_time_range='1200-1730',
+        booking_start_time='1700',
+        booking_duration='60'
+    )
+    await FBSBookerBot.start_web_booking(message, state)
 
 # TODO: fix global error handling
 @dp.error()

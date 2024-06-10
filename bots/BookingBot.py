@@ -205,8 +205,6 @@ class BookingBot(StatesGroup):
             "duration": int(data.get('booking_duration', 90))
         }
 
-        print(data)
-
         end_time_string = utils.cal_end_time(booking_details['startTime'], booking_details['duration'])
         booking_date_string = utils.get_formatted_date_from_string(booking_details['date'])
         booking_details_string = bot_messages.BOOKING_DATETIME_STRING.format(booking_date_string, booking_details['startTime'], end_time_string)
@@ -237,9 +235,3 @@ class BookingBot(StatesGroup):
             logger.info("BOOKING SUCCESSFUL!")
             await message.answer(f"Your booking has been successfully processed!\n\nHere are your slot details\n{booking_details_string}\n\nSend /schedule to view the updated schedule")
             await state.clear()
-
-
-
-
-
-
