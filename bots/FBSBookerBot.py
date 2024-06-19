@@ -3,6 +3,9 @@ import logging
 import sys
 from os import getenv
 
+from datetime import datetime, timedelta
+import re
+
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
@@ -11,7 +14,7 @@ import caches, config, database_functions, utils
 from caches import utownfbs_login
 from config import dp, bot, booking_router, logger
 
-from playwright.async_api import async_playwright
+from playwright.async_api import async_playwright, expect
 
 
 class FBSBookerBot(StatesGroup): 
@@ -28,52 +31,136 @@ class FBSBookerBot(StatesGroup):
 
     @booking_router.message(automating_web_booking)
     async def booking_slot(message: Message, state: FSMContext):
-        # details are in state
-
         data = await state.get_data()
+
+        booker_name = data['booker_name'] 
+        
+        date_obj = datetime.strptime(data['booking_date'], "%d/%m/%Y")
+        booking_date = date_obj.strftime('%d-%b-%Y')
+        div_avail_date = date_obj.strftime('%m/%d/%Y')
+        duration = data['booking_duration']
+        start_time_datetime = datetime.strptime("1800/01/01 " + data['booking_start_time'], "%Y/%m/%d %H%M")
+        start_time = start_time_datetime.strftime("%Y/%m/%d %H:%M:%S")
+        end_time_datetime = start_time_datetime + timedelta(minutes=int(duration))
+        end_time = end_time_datetime.strftime("%Y/%m/%d %H:%M:%S")
+
+        # TODO: nusnet id from verification - coded later 
         
         async with async_playwright() as playwright:
             try: 
                 logger.info("web booking is being processed")
 
-                # connect to VPN
-                # start 
+                ## start 
                 browser = await playwright.chromium.launch(headless=False, channel="chrome")
                 context = await browser.new_context(http_credentials={
                     'username': utownfbs_login['username'], 
                     'password': utownfbs_login['password']
                 })
                 page = await context.new_page()
-
                 logger.info("browser has been set up")
 
-                # login to utownfbs
+                ## login to utownfbs
                 await page.goto("https://utownfbs.nus.edu.sg/utown/login.aspx")
-                await page.wait_for_timeout(5000)
+                await page.wait_for_load_state()
                 logger.info("logged into utownfbs")
 
-                # select location and date range 
+                ## select location and date range 
+                # select "Facilities in RC4"
+                frame = page.frame(url='https://utownfbs.nus.edu.sg/utown/modules/booking/search.aspx')
 
+                if not frame:
+                    raise Exception("Frame not found")
+
+                await frame.wait_for_load_state()
+
+                await frame.locator('select[name="FacilityType$ctl02"]').select_option(value="b0b1df78-0e74-4b3c-8033-ced5e3e32413")
+
+                # Location
+                await frame.locator('select[name="Facility$ctl02"]').select_option(value="32ecb2ef-0600-44b9-97b0-dbf2a1c2bfab")
+
+                # Date Range: Very Unrealiable (TODO)
+                # change event may or may not happen because of changing it programmically
+
+                start_input_locator = frame.locator('input[name="StartDate$ctl03"]')
+                start_date_script = """ 
+                (date) => {
+                    const input = document.querySelector('input[name="StartDate$ctl03"]');
+                    input.setAttribute('value', date);
+                    __doPostBack('StartDate$ctl02','CHANGE');   
+                }
+                """
+                await frame.evaluate(start_date_script, booking_date)
+                await frame.wait_for_load_state('load')
+
+                ## TODO: end date value change not reliably reflected in backend, 
+                ## no onchange event trigger in frontend 
+                end_date_script = """ 
+                (date) => {
+                    document.querySelector('input[name="StartDate$ctl10"]').setAttribute('value', date)
+                }
+                """
+                await frame.evaluate(end_date_script, booking_date)
+                await frame.wait_for_load_state('load') 
+
+                await frame.locator('input[name="btnViewAvailability"]').click()
+                await frame.wait_for_load_state()
+                logger.info("searched for available slots")
+
+                ## select date 
+                create_window = frame.locator('div[id="createWindow_c"]')
+
+                # can have 1 or more divAvailable
+                await frame.locator('div[class="divAvailable"]').first.click()
+                await expect(create_window).to_be_visible()
+
+                booking_frame = frame.frame_locator('#frmCreate')
+                logger.info("created booking frame")
                 
-                # select date 
+                ## fill in the booking details 
+                await booking_frame.locator('select[name="UsageType$ctl02"]').select_option(value="d946c992-97e3-4a44-bb11-07ad0440563d")
+                await frame.wait_for_load_state('load')
 
-                # select the details 
+                await booking_frame.locator('select[name="from$ctl02"]').select_option(value=start_time)
+                await booking_frame.locator('select[name="to$ctl02"]').select_option(value=end_time)
 
-                # select submit 
+                await booking_frame.locator('input[name="ExpectedNoAttendees$ctl02"]').fill('2')
+                await booking_frame.locator('select[name="ChargeGroup$ctl02"]').select_option(value="1")
+                await booking_frame.locator('textarea[name="Purpose$ctl02"]').fill(booker_name)
+                await frame.wait_for_load_state('load')
                 
-                # check panel Message, if error throw error
+                # TODO: fill up nusnet id, find user id 
 
-                # close + send confirmation
-                
+                ## select submit 
+                await booking_frame.locator('input[id="btnCreateBooking"]').click()
+                await frame.wait_for_load_state('load')
+                logger.info("submitted booking")
+
+                await frame.wait_for_timeout(10000)
+
+                ## TODO: Submission, not completed 
+                # when successful: new page loads, dont have labelMessage1
+                # when fails: page stays, labelMessage1 appears
+                await frame.evaluate(
+                    """
+                        () => {
+                            const errorMessageElement = document.querySelector('span[id="labelMessage1"]');
+                            if (errorMessageElement) {
+                                const errorMessage = errorMessageElement.textContent;
+                                throw new Error(errorMessage ? errorMessage: "Slot booked by another user (null message)")
+                            }
+                            return true
+                        }
+                    """
+                )
+
             except Exception as e:
-                logger.error(f"Booking Failed due to: {e}")
+                logger.error(f"(in fbsbooker) Booking Failed due to: {e}")
                 raise e
             finally:
                 # TO DO: logout
                 await browser.close()
                 await playwright.stop()
                 logger.info("web booking completed on UtownFBS")
-                pass
         
         return state
     

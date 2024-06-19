@@ -62,15 +62,15 @@ async def web(message: Message, state: FSMContext) -> None:
     await state.set_state(FBSBookerBot.start_of_web_booking)
     await bot.send_message(message.chat.id, "Starting web booking process")
     await state.update_data(
-        booker_name='Web Test Booking',
+        booker_name='Benjamin Seow',
         telehandle='benjaminseowww',
         booker_room_number= '17-16',
         buddy_name= 'test',
         buddy_room_number='04-23',
         buddy_telegram_handle='abc',
-        booking_date='14/06/2024',
+        booking_date='21/06/2024',
         booking_time_range='1200-1730',
-        booking_start_time='1700',
+        booking_start_time='1600',
         booking_duration='60'
     )
     await FBSBookerBot.start_web_booking(message, state)
