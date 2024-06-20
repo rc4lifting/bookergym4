@@ -25,6 +25,10 @@ dp = Dispatcher()
 booking_router = Router() 
 dp.include_router(booking_router)
 
+# created errors
+class SlotTakenException(Exception):
+    '''thrown when slot is already taken'''
+
 
 
 

@@ -3,7 +3,7 @@ from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
 from aiogram.enums import ParseMode
 
-from config import booking_router, logger
+from config import bot, booking_router, logger, SlotTakenException
 import database_functions, utils, bot_messages
 from bots.FBSBookerBot import FBSBookerBot
 from bots.ScheduleBot import ScheduleBot
@@ -97,7 +97,16 @@ class BookingBot(StatesGroup):
         await state.update_data(buddy_telegram_handle=telehandle)
         await state.set_state(BookingBot.get_booking_date)
         await message.answer("Please select the booking date:", reply_markup=utils.create_inline(
-            {"03 June 2024": "03/06/2024", "04 June 2024": "04/06/2024", "05 June 2024": "05/06/2024", "06 June 2024": "06/06/2024", "07 June 2024": "07/06/2024", "08 June 2024": "08/06/2024", "09 June 2024": "09/06/2024", "10 June 2024": "10/06/2024"}, row_width=2))
+            {
+                "21 June 2024": "21/06/2024", 
+                "22 June 2024": "22/06/2024", 
+                "23 June 2024": "23/06/2024"
+                #"24 June 2024": "06/06/2024", 
+                #"25 June 2024": "07/06/2024", 
+                #"26 June 2024": "08/06/2024", 
+                #"27 June 2024": "09/06/2024", 
+                #"10 June 2024": "10/06/2024"
+            }, row_width=2))
 
     # TODO: apply time logic here 
     @booking_router.callback_query(get_booking_date)
@@ -136,8 +145,6 @@ class BookingBot(StatesGroup):
         await state.update_data(booking_duration=callback_query.data)
         await state.set_state(BookingBot.confirm_booking_details)
         await BookingBot.booking_details_confirmation(callback_query.message, state)
-
-    # TODO: check if timeslot is avaliable
 
     #confirmation of booking details
     @booking_router.message(confirm_booking_details)
@@ -184,6 +191,7 @@ class BookingBot(StatesGroup):
         logger.info("15: Declared and Ready to Book")
 
         message = callback_query.message
+        await bot.send_message(message.chat.id, "Received your booking! Processing now...")
         data = await state.get_data()
 
         # TODO: add buddyid if buddy exists in db
@@ -205,41 +213,43 @@ class BookingBot(StatesGroup):
             "duration": int(data.get('booking_duration', 90))
         }
 
-        print(data)
-
         end_time_string = utils.cal_end_time(booking_details['startTime'], booking_details['duration'])
         booking_date_string = utils.get_formatted_date_from_string(booking_details['date'])
         booking_details_string = bot_messages.BOOKING_DATETIME_STRING.format(booking_date_string, booking_details['startTime'], end_time_string)
+
+        web_booking_success = False
 
         # Call FBSBookerBot for booking on FBS
         try: 
             new_state = await FBSBookerBot.start_web_booking(message, state)
             state = new_state
+        except SlotTakenException as e: # to test this error
+            logger.error(f"WEB BOOKING SlotTakenException: {e}")
+            await message.answer(f"{e}\n\n{booking_details_string}\n\nSend /book to book another slot")
+            await state.clear()
         except Exception as e:
-            logger.error(f"Following Error has occurred when automating web booking: {e}")
+            logger.error(f"WEB BOOKING ERROR: {e}")
             await message.answer(f"An error has occurred when booking your slot:\n\n{booking_details_string}\n\nSend /exco to report the issue to us")
             await state.clear()
+        else:
+            logger.info("WEB BOOKING SUCCESSFUL!")
+            web_booking_success = True
             
         # Call Schedule for booking on FBS
-        try:
-            new_state = await ScheduleBot.update_schedule(message, state)
-            state = new_state
-        except Exception as e:
-            logger.error(f"Following Error has occurred when updating schedule: {e}")
-            await message.answer(f"Your booking below has been confirmed\n\n{booking_details_string}\n\n" + 
-                "However, schedule has failed to update your slot. Send /exco to report the issue to us")
-            await state.clear()
-        else: 
-            slot_id = database_functions.get_booking_counter() + 1
-            #database_functions.create_data(f"/slots/{slot_id}", booking_details)
-        
-            #database_functions.increment_booking_counter()
-            logger.info("BOOKING SUCCESSFUL!")
-            await message.answer(f"Your booking has been successfully processed!\n\nHere are your slot details\n{booking_details_string}\n\nSend /schedule to view the updated schedule")
-            await state.clear()
-
-
-
-
-
-
+        if web_booking_success:
+            try:
+                new_state = await ScheduleBot.update_schedule(message, state)
+                state = new_state
+            except Exception as e:
+                logger.error(f"Update Schedule Error: {e}")
+                await message.answer(f"Your booking below has been confirmed\n\n{booking_details_string}\n\n" + 
+                    "However, schedule has failed to update your slot. Send /exco to report the issue to us")
+                await state.clear()
+            else: 
+                slot_id = database_functions.get_booking_counter() + 1
+                #database_functions.create_data(f"/slots/{slot_id}", booking_details)
+            
+                #database_functions.increment_booking_counter()
+                logger.info("ENITRE BOOKING SUCCESSFUL!")
+                await message.answer(f"Your booking has been successfully processed!\n\nHere are your slot details\n{booking_details_string}\n\nSend /schedule to view the updated schedule")
+                await state.clear()
