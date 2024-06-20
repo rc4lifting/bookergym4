@@ -61,5 +61,3 @@ def create_start_time_keyboard(start_time_str: str, end_time_str: str, interval:
         start_time += interval
 
     return create_inline(start_times, row_width=3)
-
-

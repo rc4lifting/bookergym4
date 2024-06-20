@@ -184,7 +184,6 @@ class BookingBot(StatesGroup):
             parse_mode=ParseMode.HTML,
             reply_markup=utils.create_inline({"Read and Declared": "Declared"}, row_width=1)
         )
-        
 
     @booking_router.callback_query(end_of_booking)
     async def end_booking(callback_query: CallbackQuery, state: FSMContext):
@@ -246,9 +245,9 @@ class BookingBot(StatesGroup):
                     "However, schedule has failed to update your slot. Send /exco to report the issue to us")
                 await state.clear()
             else: 
+                # TODO: generate slot id and store booking details in db
                 slot_id = database_functions.get_booking_counter() + 1
                 #database_functions.create_data(f"/slots/{slot_id}", booking_details)
-            
                 #database_functions.increment_booking_counter()
                 logger.info("ENITRE BOOKING SUCCESSFUL!")
                 await message.answer(f"Your booking has been successfully processed!\n\nHere are your slot details\n{booking_details_string}\n\nSend /schedule to view the updated schedule")

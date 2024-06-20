@@ -82,4 +82,3 @@ class ScheduleBot(StatesGroup):
         logger.info("successfully added to schedule!")
 
         return state
-    
