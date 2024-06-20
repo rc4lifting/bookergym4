@@ -12,16 +12,15 @@ from aiogram.fsm.context import FSMContext
 
 import caches, config, database_functions, utils
 from caches import utownfbs_login
-from config import dp, bot, booking_router, logger
+from config import dp, bot, booking_router, logger, SlotTakenException
 
 from playwright.async_api import async_playwright, expect
-
 
 class FBSBookerBot(StatesGroup): 
     start_of_web_booking = State()
     automating_web_booking = State()
 
-    # booking process
+    ## booking process
     @booking_router.message(start_of_web_booking)
     async def start_web_booking(message: Message, state: FSMContext):
         logger.info("web booking start")
@@ -33,8 +32,8 @@ class FBSBookerBot(StatesGroup):
     async def booking_slot(message: Message, state: FSMContext):
         data = await state.get_data()
 
+        # parse data needed for web booking
         booker_name = data['booker_name'] 
-        
         date_obj = datetime.strptime(data['booking_date'], "%d/%m/%Y")
         booking_date = date_obj.strftime('%d-%b-%Y')
         div_avail_date = date_obj.strftime('%m/%d/%Y')
@@ -43,6 +42,8 @@ class FBSBookerBot(StatesGroup):
         start_time = start_time_datetime.strftime("%Y/%m/%d %H:%M:%S")
         end_time_datetime = start_time_datetime + timedelta(minutes=int(duration))
         end_time = end_time_datetime.strftime("%Y/%m/%d %H:%M:%S")
+
+        # TODO: check date and time here, send resp message if invalid 
 
         # TODO: nusnet id from verification - coded later 
         
@@ -90,10 +91,11 @@ class FBSBookerBot(StatesGroup):
                 }
                 """
                 await frame.evaluate(start_date_script, booking_date)
-                await frame.wait_for_load_state('load')
 
-                ## TODO: end date value change not reliably reflected in backend, 
-                ## no onchange event trigger in frontend 
+                # frame loading after onchange in start date element is unreliable
+                await frame.wait_for_load_state('load')
+                await frame.wait_for_timeout(1000)
+
                 end_date_script = """ 
                 (date) => {
                     document.querySelector('input[name="StartDate$ctl10"]').setAttribute('value', date)
@@ -108,8 +110,6 @@ class FBSBookerBot(StatesGroup):
 
                 ## select date 
                 create_window = frame.locator('div[id="createWindow_c"]')
-
-                # can have 1 or more divAvailable
                 await frame.locator('div[class="divAvailable"]').first.click()
                 await expect(create_window).to_be_visible()
 
@@ -133,37 +133,29 @@ class FBSBookerBot(StatesGroup):
                 ## select submit 
                 await booking_frame.locator('input[id="btnCreateBooking"]').click()
                 await frame.wait_for_load_state('load')
-                logger.info("submitted booking")
+                logger.info("submitted web booking")
 
-                await frame.wait_for_timeout(10000)
+                await asyncio.sleep(10)
 
-                ## TODO: Submission, not completed 
-                # when successful: new page loads, dont have labelMessage1
-                # when fails: page stays, labelMessage1 appears
-                await frame.evaluate(
-                    """
-                        () => {
-                            const errorMessageElement = document.querySelector('span[id="labelMessage1"]');
-                            if (errorMessageElement) {
-                                const errorMessage = errorMessageElement.textContent;
-                                throw new Error(errorMessage ? errorMessage: "Slot booked by another user (null message)")
-                            }
-                            return true
-                        }
-                    """
-                )
+                ## submission
+                error_element_count = await booking_frame.locator('span[id="labelMessage1"]').count()
+
+                if error_element_count != 0:
+                    error_text = await booking_frame.locator('span[id="labelMessage1"]').text_content()
+                    raise SlotTakenException(error_text if error_text else "This slot has been taken")
 
             except Exception as e:
                 logger.error(f"(in fbsbooker) Booking Failed due to: {e}")
                 raise e
             finally:
-                # TO DO: logout
                 await browser.close()
                 await playwright.stop()
                 logger.info("web booking completed on UtownFBS")
         
         return state
-    
+
+    ## cancellation process
+
     async def cancel_slot(message: Message, state: FSMContext):
         # go to right panel
 
