@@ -220,9 +220,10 @@ class BookingBot(StatesGroup):
 
         # Call FBSBookerBot for booking on FBS
         try: 
-            new_state = await FBSBookerBot.start_web_booking(message, state)
-            state = new_state
-        except SlotTakenException as e: # to test this error
+            #new_state = await FBSBookerBot.start_web_booking(message, state)
+            #state = new_state
+            print("in web booking try block")
+        except SlotTakenException as e: 
             logger.error(f"WEB BOOKING SlotTakenException: {e}")
             await message.answer(f"{e}\n\n{booking_details_string}\n\nSend /book to book another slot")
             await state.clear()
@@ -233,22 +234,22 @@ class BookingBot(StatesGroup):
         else:
             logger.info("WEB BOOKING SUCCESSFUL!")
             web_booking_success = True
+            data = await state.get_data()
+            booking_details["utownfbsBookingId"] = data.get('utownfbsBookingId')
+            database_functions.create_data(f"/slots", booking_details, True)
             
         # Call Schedule for booking on FBS
         if web_booking_success:
             try:
-                new_state = await ScheduleBot.update_schedule(message, state)
-                state = new_state
+                #new_state = await ScheduleBot.update_schedule(message, state)
+                #state = new_state
+                print("in scheduling try block")
             except Exception as e:
                 logger.error(f"Update Schedule Error: {e}")
                 await message.answer(f"Your booking below has been confirmed\n\n{booking_details_string}\n\n" + 
                     "However, schedule has failed to update your slot. Send /exco to report the issue to us")
                 await state.clear()
             else: 
-                # TODO: generate slot id and store booking details in db
-                slot_id = database_functions.get_booking_counter() + 1
-                #database_functions.create_data(f"/slots/{slot_id}", booking_details)
-                #database_functions.increment_booking_counter()
                 logger.info("ENITRE BOOKING SUCCESSFUL!")
                 await message.answer(f"Your booking has been successfully processed!\n\nHere are your slot details\n{booking_details_string}\n\nSend /schedule to view the updated schedule")
                 await state.clear()

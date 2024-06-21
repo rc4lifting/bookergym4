@@ -143,7 +143,10 @@ class FBSBookerBot(StatesGroup):
                 if error_element_count != 0:
                     error_text = await booking_frame.locator('span[id="labelMessage1"]').text_content()
                     raise SlotTakenException(error_text if error_text else "This slot has been taken")
-
+                else:
+                    booking_id = await booking_frame.locator('table[id="BookingReferenceNumber"]').locator('tbody').locator('tr').locator('td').nth(1).text_content()
+                    booking_id = booking_id.strip()
+                    await state.update_data(utownfbsBookingId=booking_id)
             except Exception as e:
                 logger.error(f"(in fbsbooker) Booking Failed due to: {e}")
                 raise e

@@ -53,15 +53,3 @@ def data_exists(path: str):
 def user_exists(chat_id: str):
     path = f"/users/{chat_id}"
     return data_exists(path)
-
-# get booking counter
-def get_booking_counter():
-    path = "/bookingCounter"
-    number = db.reference(path).get()
-    return number
-
-# increment booking counter
-def increment_booking_counter():
-    path = "/bookingCounter"
-    number = db.reference(path).get()
-    return db.reference(path).set(number + 1)
