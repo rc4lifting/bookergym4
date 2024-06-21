@@ -156,6 +156,10 @@ class BookingBot(StatesGroup):
             data['buddy_name'], data['buddy_telegram_handle'], data['buddy_room_number']
         )
 
+        # setting default booking duration
+        if data['booking_duration'] != "60" or data['booking_duration'] != "90":
+            data['booking_duration'] = "90"
+
         end_time_string = utils.cal_end_time(data['booking_start_time'], data['booking_duration'])
         booking_date_string = utils.get_formatted_date_from_string(data['booking_date'])
         booking_datetime_string = bot_messages.BOOKING_DATETIME_STRING.format(booking_date_string, data['booking_start_time'], end_time_string)
@@ -235,8 +239,8 @@ class BookingBot(StatesGroup):
             logger.info("WEB BOOKING SUCCESSFUL!")
             web_booking_success = True
             data = await state.get_data()
-            booking_details["utownfbsBookingId"] = data.get('utownfbsBookingId')
-            database_functions.create_data(f"/slots", booking_details, True)
+            #booking_details["utownfbsBookingId"] = data.get('utownfbsBookingId')
+            #database_functions.create_data(f"/slots", booking_details, True)
             
         # Call Schedule for booking on FBS
         if web_booking_success:

@@ -14,7 +14,7 @@ import caches, config, database_functions, utils, bot_messages
 from config import dp, bot, booking_router, logger
 from bots.BookingBot import BookingBot
 from bots.FBSBookerBot import FBSBookerBot
-from bots.CancellationBot import CancellationBot
+from bots.FBSCancellationBot import FBSCancellationBot
 
 # Logging configuration
 logging.basicConfig(level=logging.INFO)
@@ -51,7 +51,7 @@ async def book(message: Message, state: FSMContext):
 @dp.message(Command('cancel'))
 async def cancel(message: Message, state: FSMContext):
     logger.info("Received /cancel command")
-    await CancellationBot.start_cancellation(message, state)
+    await FBSCancellationBot.start_cancellation(message, state)
 
 # '/exco' command
 @dp.message(Command('exco'))

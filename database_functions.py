@@ -47,7 +47,6 @@ def data_exists(path: str):
     data = ref.get()
     return data is not None
 
-
 ## specific use case funcitons
 # check if user exists
 def user_exists(chat_id: str):
