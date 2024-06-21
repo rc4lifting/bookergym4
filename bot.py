@@ -13,8 +13,8 @@ from aiogram.types.error_event import ErrorEvent
 import caches, config, database_functions, utils, bot_messages
 from config import dp, bot, booking_router, logger
 from bots.BookingBot import BookingBot
-from bots.FBSBookerBot import FBSBookerBot
-from bots.FBSCancellationBot import FBSCancellationBot
+from bots.CancellationBot import CancellationBot
+from bots.FBSProcessBot import FBSProcessBot
 
 # Logging configuration
 logging.basicConfig(level=logging.INFO)
@@ -51,7 +51,7 @@ async def book(message: Message, state: FSMContext):
 @dp.message(Command('cancel'))
 async def cancel(message: Message, state: FSMContext):
     logger.info("Received /cancel command")
-    await FBSCancellationBot.start_cancellation(message, state)
+    await CancellationBot.start_cancellation(message, state)
 
 # '/exco' command
 @dp.message(Command('exco'))
@@ -66,7 +66,7 @@ async def schedule(message: Message, state: FSMContext) -> None:
 # '/web' command: use for testing web automation, delete when all done 
 @dp.message(Command('web'))
 async def web(message: Message, state: FSMContext) -> None:
-    await state.set_state(FBSBookerBot.start_of_web_booking)
+    await state.set_state(FBSProcessBot.start_of_web_booking)
     await bot.send_message(message.chat.id, "Starting web booking process")
     await state.update_data(
         booker_name='Benjamin Seow',
@@ -80,7 +80,7 @@ async def web(message: Message, state: FSMContext) -> None:
         booking_start_time='1600',
         booking_duration='60'
     )
-    await FBSBookerBot.start_web_booking(message, state)
+    await FBSProcessBot.start_web_booking(message, state)
 
 # global error handling, for unexpected errors
 @dp.error()

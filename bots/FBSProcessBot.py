@@ -16,7 +16,7 @@ from config import dp, bot, booking_router, logger, SlotTakenException
 
 from playwright.async_api import async_playwright, expect
 
-class FBSBookerBot(StatesGroup): 
+class FBSProcessBot(StatesGroup): 
     start_of_web_booking = State()
     automating_web_booking = State()
 

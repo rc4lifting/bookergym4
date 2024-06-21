@@ -5,7 +5,7 @@ from aiogram.enums import ParseMode
 
 from config import bot, booking_router, logger, SlotTakenException
 import database_functions, utils, bot_messages
-from bots.FBSBookerBot import FBSBookerBot
+from bots.FBSProcessBot import FBSProcessBot
 from bots.ScheduleBot import ScheduleBot
 
 class BookingBot(StatesGroup):
@@ -222,9 +222,9 @@ class BookingBot(StatesGroup):
 
         web_booking_success = False
 
-        # Call FBSBookerBot for booking on FBS
+        # Call FBSProcessBot for booking on FBS
         try: 
-            #new_state = await FBSBookerBot.start_web_booking(message, state)
+            #new_state = await FBSProcessBot.start_web_booking(message, state)
             #state = new_state
             print("in web booking try block")
         except SlotTakenException as e: 

@@ -5,13 +5,15 @@ from aiogram.enums import ParseMode
 
 from config import booking_router, logger
 import database_functions, utils, bot_messages
-from bots.FBSBookerBot import FBSBookerBot
+from bots.FBSProcessBot import FBSProcessBot
 from bots.ScheduleBot import ScheduleBot
 
 from playwright.async_api import async_playwright, expect
 
-class FBSCancellationBot(StatesGroup):
+class CancellationBot(StatesGroup):
     async def start_cancellation(message: Message, state: FSMContext):
         logger.info("1: Cancellation started!")
         await state.clear()
+        
+        # to display slots 
         await message.answer("you will be able to cancel slots soon")

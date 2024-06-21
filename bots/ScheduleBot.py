@@ -82,3 +82,6 @@ class ScheduleBot(StatesGroup):
         logger.info("successfully added to schedule!")
 
         return state
+
+    async def remove_from_schedule(message: Message, state: FSMContext):
+        pass
