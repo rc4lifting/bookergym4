@@ -23,6 +23,8 @@ EXCO_MESSAGE = "Contact us! we are happy to help!\n" +\
                 #"Jedi - @JediKoh\n" +\
                #"Justin - @jooostwtk"
 
+CANCEL_NOSLOTS_MESSAGE = "You do not have any upcoming slots!"
+
 SCHEDULE_MESSAGE = "Here are the available slots for the week:\n" +\
                    "https://docs.google.com/spreadsheets/d/1r1r0I0HvKDivze8YMj9BNZfs4p8Z957XWc498QUaSU0/edit?usp=sharing"
 

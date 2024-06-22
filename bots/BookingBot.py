@@ -239,8 +239,8 @@ class BookingBot(StatesGroup):
             logger.info("WEB BOOKING SUCCESSFUL!")
             web_booking_success = True
             data = await state.get_data()
-            #booking_details["utownfbsBookingId"] = data.get('utownfbsBookingId')
-            #database_functions.create_data(f"/slots", booking_details, True)
+            booking_details["utownfbsBookingId"] = data.get('utownfbsBookingId')
+            database_functions.create_data(f"/slots", booking_details, True)
             
         # Call Schedule for booking on FBS
         if web_booking_success:
