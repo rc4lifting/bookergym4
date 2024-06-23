@@ -84,4 +84,30 @@ class ScheduleBot(StatesGroup):
         return state
 
     async def remove_from_schedule(message: Message, state: FSMContext):
-        pass
+        logger.info("removing from schedule...")
+        data = await state.get_data()
+
+        booking_date = data['cancel_slot_date']
+        start_time = data['cancel_slot_start_time']
+        duration = data['cancel_slot_duration']
+        cells_to_remove = await ScheduleBot.booking_str_to_cells(booking_date, start_time, duration)
+        
+        # TODO: get the sheet name for the current week
+        sheet_name = "Sheet1!"
+
+        request_body = {
+            "ranges": cells_to_remove
+        }
+
+        request = ScheduleBot.spreadsheets.values().batchClear(
+            spreadsheetId=schedule_gsheet_id,
+            body=request_body
+        )
+
+        try:
+            response = request.execute()
+        except Exception as e:
+            raise e
+        logger.info("successfully removed to schedule!")
+
+        return state

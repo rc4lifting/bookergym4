@@ -160,15 +160,26 @@ class FBSProcessBot(StatesGroup):
     ## cancellation process
 
     async def cancel_slot(message: Message, state: FSMContext):
-        # go to right panel
+        data = await state.get_data()
+        print(data['cancel_utownfbs_id'])
 
-        # find the slot with the same details 
+        async with async_playwright() as playwright:
+            try: 
 
-        # click cancel -> opens new tab
+                # go to right panel
 
-        # enter cancel remarks 
+                # find the slot with the same details 
 
-        # click cancel
+                # click cancel -> opens new tab
 
-        # check panel Message 
-        pass
+                # enter cancel remarks 
+
+                # click cancel
+
+                # check panel Message 
+                pass
+            except Exception as e:
+                logger.error(f"(in fbsbooker) Cancellation Failed due to: {e}")
+                raise e
+        
+        return state
