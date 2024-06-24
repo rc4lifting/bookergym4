@@ -49,9 +49,12 @@ class CancellationBot(StatesGroup):
         message = callback_query.message
 
         # get utown booking id 
-        utown_booking_id = database_functions.read_data(f"/slots/{slot_id}/utownfbsBookingId")
+        utown_booking_id = 'B00858407'
+        #database_functions.read_data(f"/slots/{slot_id}/utownfbsBookingId")
         
-        if utown_booking_id:
+        if utown_booking_id == None:
+            logger.info("no utownfbs id found")
+        else:
             await state.update_data({
                 "cancel_utownfbs_id": utown_booking_id
             })
@@ -63,9 +66,8 @@ class CancellationBot(StatesGroup):
                 state = new_state
             except Exception as e:
                 logger.error(f"Cancellation Error: {e}")
+                raise e
                 await state.clear()
-        else:
-            logger.info("no utownfbs id found")
         
         # update data in state
         await state.update_data({
