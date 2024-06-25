@@ -3,7 +3,7 @@ from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
 from aiogram.enums import ParseMode
 
-from config import cancellation_router, logger
+from config import cancellation_router, logger, bot, dp, ExpectedElementNotFound
 import database_functions, utils, bot_messages
 from bots.FBSProcessBot import FBSProcessBot
 from bots.ScheduleBot import ScheduleBot
@@ -48,9 +48,11 @@ class CancellationBot(StatesGroup):
         slot_id = callback_query.data
         message = callback_query.message
 
+        await bot.send_message(message.chat.id, "Received your cancellation! Processing now...\nThis process may take up to 5 minutes")
+        web_cancel_success = False
+
         # get utown booking id 
-        utown_booking_id = 'B00858407'
-        #database_functions.read_data(f"/slots/{slot_id}/utownfbsBookingId")
+        utown_booking_id = database_functions.read_data(f"/slots/{slot_id}/utownfbsBookingId")
         
         if utown_booking_id == None:
             logger.info("no utownfbs id found")
@@ -64,31 +66,41 @@ class CancellationBot(StatesGroup):
                 # TODO: implement cancel_slot
                 new_state = await FBSProcessBot.cancel_slot(message, state)
                 state = new_state
+            except ExpectedElementNotFound as e: 
+                logger.error(f"WEB CANCELLATION ExpectedElementNotFound: {e}")
+                await message.answer(f"An error has occurred when booking your slot:\n\n{booking_details_string}\n\nSend /exco to report the issue to us")
+                await state.clear()
             except Exception as e:
                 logger.error(f"Cancellation Error: {e}")
                 raise e
                 await state.clear()
+            else: 
+                logger.info("WEB CANCELLATION SUCCESSFUL!")
+                web_cancel_success = True
+                
+                 # update data in state
+                await state.update_data({
+                    "cancel_slot_date": database_functions.read_data(f"/slots/{slot_id}/date"),
+                    "cancel_slot_start_time": database_functions.read_data(f"/slots/{slot_id}/startTime"),
+                    "cancel_slot_duration": database_functions.read_data(f"/slots/{slot_id}/duration"),
+                })
+
+                # remove slot from db
+                database_functions.delete_data(f"/slots/{slot_id}")
         
-        # update data in state
-        await state.update_data({
-            "cancel_slot_date": database_functions.read_data(f"/slots/{slot_id}/date"),
-            "cancel_slot_start_time": database_functions.read_data(f"/slots/{slot_id}/startTime"),
-            "cancel_slot_duration": database_functions.read_data(f"/slots/{slot_id}/duration"),
-        })
+        if web_cancel_success:
+            # call ScheduleBot to remove from sheet
+            try:
+                new_state = await ScheduleBot.remove_from_schedule(message, state)
+                state = new_state
+            except Exception as e:
+                logger.error(f"Removing From Schedule Error: {e}")
+                await state.clear()
 
-        # remove slot from db
-        #database_functions.delete_data(f"/slots/{slot_id}")
+            data = await state.get_data()
+            formatted_date = utils.get_formatted_date_from_string(data['cancel_slot_date'])
+            end_time_str = utils.cal_end_time(data['cancel_slot_start_time'], data['cancel_slot_duration'])
 
-        # call ScheduleBot to remove from sheet
-        try:
-            new_state = await ScheduleBot.remove_from_schedule(message, state)
-        except Exception as e:
-            logger.error(f"Removing From Schedule Error: {e}")
+            logger.info("ENITRE CANCELLATION SUCCESSFUL!")
+            await message.answer(f"The following booking has been successfully cancelled:\n\n{BOOKING_DATETIME_STRING.format(formatted_date, data['cancel_slot_start_time'], end_time_str)}")
             await state.clear()
-
-        data = await state.get_data()
-        formatted_date = utils.get_formatted_date_from_string(data['cancel_slot_date'])
-        end_time_str = utils.cal_end_time(data['cancel_slot_start_time'], data['cancel_slot_duration'])
-
-        await message.answer(f"The following booking has been cancelled:\n\n{BOOKING_DATETIME_STRING.format(formatted_date, data['cancel_slot_start_time'], end_time_str)}")
-        await state.clear()

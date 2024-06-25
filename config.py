@@ -31,6 +31,9 @@ dp.include_router(cancellation_router)
 class SlotTakenException(Exception):
     '''thrown when slot is already taken'''
 
+class ExpectedElementNotFound(Exception):
+    '''thrown when expected element is not found'''
+
 
 
 

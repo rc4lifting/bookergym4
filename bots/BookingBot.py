@@ -3,7 +3,7 @@ from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
 from aiogram.enums import ParseMode
 
-from config import bot, booking_router, logger, SlotTakenException
+from config import bot, booking_router, logger, SlotTakenException, ExpectedElementNotFound
 import database_functions, utils, bot_messages
 from bots.FBSProcessBot import FBSProcessBot
 from bots.ScheduleBot import ScheduleBot
@@ -98,11 +98,11 @@ class BookingBot(StatesGroup):
         await state.set_state(BookingBot.get_booking_date)
         await message.answer("Please select the booking date:", reply_markup=utils.create_inline(
             {
-                "21 June 2024": "21/06/2024", 
-                "22 June 2024": "22/06/2024", 
-                "23 June 2024": "23/06/2024"
-                #"24 June 2024": "06/06/2024", 
-                #"25 June 2024": "07/06/2024", 
+                "26 June 2024": "26/06/2024", 
+                "27 June 2024": "27/06/2024", 
+                "28 June 2024": "28/06/2024",
+                "29 June 2024": "29/06/2024", 
+                "30 June 2024": "30/06/2024"
                 #"26 June 2024": "08/06/2024", 
                 #"27 June 2024": "09/06/2024", 
                 #"10 June 2024": "10/06/2024"
@@ -194,7 +194,7 @@ class BookingBot(StatesGroup):
         logger.info("15: Declared and Ready to Book")
 
         message = callback_query.message
-        await bot.send_message(message.chat.id, "Received your booking! Processing now...")
+        await bot.send_message(message.chat.id, "Received your booking! Processing now...\nThis process may take up to 5 minutes")
         data = await state.get_data()
 
         # TODO: add buddyid if buddy exists in db
@@ -224,12 +224,16 @@ class BookingBot(StatesGroup):
 
         # Call FBSProcessBot for booking on FBS
         try: 
-            #new_state = await FBSProcessBot.start_web_booking(message, state)
-            #state = new_state
-            print("in web booking try block")
+            new_state = await FBSProcessBot.start_web_booking(message, state)
+            state = new_state
+            #print("in web booking try block")
         except SlotTakenException as e: 
             logger.error(f"WEB BOOKING SlotTakenException: {e}")
             await message.answer(f"{e}\n\n{booking_details_string}\n\nSend /book to book another slot")
+            await state.clear()
+        except ExpectedElementNotFound as e: 
+            logger.error(f"WEB BOOKING ExpectedElementNotFound: {e}")
+            await message.answer(f"An error has occurred when booking your slot:\n\n{booking_details_string}\n\nSend /exco to report the issue to us")
             await state.clear()
         except Exception as e:
             logger.error(f"WEB BOOKING ERROR: {e}")
@@ -245,9 +249,9 @@ class BookingBot(StatesGroup):
         # Call Schedule for booking on FBS
         if web_booking_success:
             try:
-                #new_state = await ScheduleBot.update_schedule(message, state)
-                #state = new_state
-                print("in scheduling try block")
+                new_state = await ScheduleBot.update_schedule(message, state)
+                state = new_state
+                #print("in scheduling try block")
             except Exception as e:
                 logger.error(f"Update Schedule Error: {e}")
                 await message.answer(f"Your booking below has been confirmed\n\n{booking_details_string}\n\n" + 

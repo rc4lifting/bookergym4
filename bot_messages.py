@@ -42,3 +42,6 @@ BOOKING_USER_DETAILS_STRING = "Name: {}\n" +\
                               "Buddy Telegram Handle: @{}\n" +\
                               "Buddy Room Number: #{}"
 BOOKING_DATETIME_STRING = "Date: {}\nTime: {} - {}"
+
+# CANCEL
+DEFAULT_CANCEL_REMARK = "Wrong Booking Timing"

@@ -12,7 +12,8 @@ from aiogram.fsm.context import FSMContext
 
 import caches, config, database_functions, utils
 from caches import utownfbs_login
-from config import dp, bot, booking_router, logger, SlotTakenException
+from config import dp, bot, booking_router, logger, SlotTakenException, ExpectedElementNotFound
+from bot_messages import DEFAULT_CANCEL_REMARK
 
 from playwright.async_api import async_playwright, expect
 
@@ -24,8 +25,8 @@ class FBSProcessBot(StatesGroup):
     @booking_router.message(start_of_web_booking)
     async def start_web_booking(message: Message, state: FSMContext):
         logger.info("web booking start")
-        await state.set_state(FBSBookerBot.automating_web_booking)
-        new_state = await FBSBookerBot.booking_slot(message, state)
+        await state.set_state(FBSProcessBot.automating_web_booking)
+        new_state = await FBSProcessBot.booking_slot(message, state)
         return new_state
 
     @booking_router.message(automating_web_booking)
@@ -49,7 +50,7 @@ class FBSProcessBot(StatesGroup):
         
         async with async_playwright() as playwright:
             try: 
-                logger.info("web booking is being processed")
+                logger.info("booking - web booking has started")
 
                 ## start 
                 browser = await playwright.chromium.launch(headless=True, channel="chrome")
@@ -58,18 +59,18 @@ class FBSProcessBot(StatesGroup):
                     'password': utownfbs_login['password']
                 })
                 page = await context.new_page()
-                logger.info("browser has been set up")
+                logger.info("booking - browser has been set up")
 
                 ## login to utownfbs
                 await page.goto("https://utownfbs.nus.edu.sg/utown/login.aspx")
                 await page.wait_for_load_state()
-                logger.info("logged into utownfbs")
+                logger.info("booking - logged into utownfbs")
 
                 ## select location and date range 
                 frame = page.frame(url='https://utownfbs.nus.edu.sg/utown/modules/booking/search.aspx')
 
                 if not frame:
-                    raise Exception("Frame not found")
+                    raise ExpectedElementNotFound("Frame not found")
 
                 await frame.wait_for_load_state()
 
@@ -104,7 +105,7 @@ class FBSProcessBot(StatesGroup):
 
                 await frame.locator('input[name="btnViewAvailability"]').click()
                 await frame.wait_for_load_state()
-                logger.info("searched for available slots")
+                logger.info("booking - searched for available slots")
 
                 ## select date box
                 create_window = frame.locator('div[id="createWindow_c"]')
@@ -112,7 +113,7 @@ class FBSProcessBot(StatesGroup):
                 await expect(create_window).to_be_visible()
 
                 booking_frame = frame.frame_locator('#frmCreate')
-                logger.info("created booking frame")
+                logger.info("booking - created booking frame")
                 
                 ## fill in the booking details 
                 await booking_frame.locator('select[name="UsageType$ctl02"]').select_option(value="d946c992-97e3-4a44-bb11-07ad0440563d")
@@ -131,7 +132,7 @@ class FBSProcessBot(StatesGroup):
                 ## select submit 
                 await booking_frame.locator('input[id="btnCreateBooking"]').click()
                 await frame.wait_for_load_state('load')
-                logger.info("submitted web booking")
+                logger.info("booking - submitted web booking")
 
                 await asyncio.sleep(10)
 
@@ -151,7 +152,7 @@ class FBSProcessBot(StatesGroup):
             finally:
                 await browser.close()
                 await playwright.stop()
-                logger.info("web booking completed on UtownFBS")
+                logger.info("booking - web booking completed on UtownFBS")
         
         return state
 
@@ -164,18 +165,18 @@ class FBSProcessBot(StatesGroup):
         async with async_playwright() as playwright:
             try: 
                 ## start
-                browser = await playwright.chromium.launch(headless=False, channel="chrome")
+                browser = await playwright.chromium.launch(headless=True, channel="chrome")
                 context = await browser.new_context(http_credentials={
                     'username': utownfbs_login['username'], 
                     'password': utownfbs_login['password']
                 })
                 page = await context.new_page()
-                logger.info("browser has been set up")
+                logger.info("cancellation - browser has been set up")
 
                 ## login to utownfbs
                 await page.goto("https://utownfbs.nus.edu.sg/utown/login.aspx")
                 await page.wait_for_load_state()
-                logger.info("logged into utownfbs")
+                logger.info("cancellation - logged into utownfbs")
 
                 ## click 'manage booking'
                 dropdown_menu_locator = page.locator('div[id="menu_mainMenun2Items"]')
@@ -188,40 +189,72 @@ class FBSProcessBot(StatesGroup):
                 search_form_element_count = await page.locator('form[id="form1"]').count()
 
                 if search_form_element_count == 0:
-                    raise Exception("Search form not found")
+                    raise ExpectedElementNotFound("Search form not found")
 
                 frame = page.frame(name="frameBottom")
 
                 if not frame:
-                    raise Exception("Frame not found")
+                    raise ExpectedElementNotFound("Frame not found")
 
                 await frame.wait_for_load_state()
+                logger.info("cancellation - entered searching frame")
 
                 ## find the slot with utownbookingid
                 await frame.locator('input[id="buttonShowAdvance"]').click()
-                await page.wait_for_load_state()
+                await page.wait_for_load_state('load')
 
-                frame_advanced = page.frame(name="frameBottom")
+                new_frame = page.frame(name="frameBottom")
 
-                if not frame_advanced:
-                    raise Exception("Frame not found")
+                if not new_frame:
+                    raise ExpectedElementNotFound("Frame not found")
 
-                await frame_advanced.wait_for_load_state()
+                await new_frame.wait_for_load_state()
 
-                await frame_advanced.locator('input[name="BookingNumber$ctl02"]').fill(data['cancel_utownfbs_id'])
-                await frame_advanced.locator('input[id="buttonSearch"]').click()
-                await asyncio.sleep(30)
+                await new_frame.locator('input[name="BookingNumber$ctl02"]').fill(data['cancel_utownfbs_id'])
+                await new_frame.locator('input[id="buttonSearch"]').click()
+                await new_frame.wait_for_load_state()
+                logger.info("cancellation - found booking to cancel")
 
-                # click cancel -> opens new tab
+                # click cancel + enter cancel remarks 
+                await new_frame.locator('a[id="gridAdhocFacilityBookings_ctl03_ctl02_btnCancel"]').click()
+                await asyncio.sleep(10)
 
-                # enter cancel remarks 
+                view_form_element_count = await new_frame.locator('form[id="viewbooking"]').count()
+
+                if view_form_element_count == 0:
+                    raise ExpectedElementNotFound("View Booking form not found")
+                
+                await new_frame.locator('form[id="viewbooking"]').locator('input[name="CancelRemarks$ctl02"]').fill(DEFAULT_CANCEL_REMARK)
 
                 # click cancel
+                await new_frame.locator('input[name="btnConfirmCancellation"]').click()
+                await asyncio.sleep(20)
+                logger.info("cancellation - entered reamarks and submitted")
 
                 # check panel Message 
-                
+                afterclick_form_element_count = await page.locator('form[id="form1"]').count()
+
+                if afterclick_form_element_count == 0:
+                    raise ExpectedElementNotFound("Search form not found")
+
+                afterclick_frame = page.frame(name="frameBottom")
+
+                if not afterclick_frame:
+                    raise ExpectedElementNotFound("Frame not found")
+
+                await afterclick_frame.wait_for_load_state()
+
+                panel_message = await afterclick_frame.locator('div[id="panelMessage"]').text_content()
+                panel_message = panel_message.strip()
+
+                if panel_message != "Selected booking(s) has been cancelled/updated successfully":
+                    raise Exception(f"Error in cancellation: {panel_message}")
             except Exception as e:
                 logger.error(f"(in fbsbooker) Cancellation Failed due to: {e}")
                 raise e
+            finally:
+                await browser.close()
+                await playwright.stop()
+                logger.info("cancellation - web cancellation completed on UtownFBS")
         
         return state
