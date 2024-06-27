@@ -4,6 +4,7 @@ import sys
 from os import getenv
 
 from datetime import datetime, timedelta
+import pytz
 import re
 
 from aiogram.fsm.state import StatesGroup, State
@@ -12,7 +13,7 @@ from aiogram.fsm.context import FSMContext
 
 import caches, config, database_functions, utils
 from caches import utownfbs_login
-from config import dp, bot, booking_router, logger, SlotTakenException, ExpectedElementNotFound
+from config import dp, bot, booking_router, logger, SlotTakenException, ExpectedElementNotFound, InvalidBookingTimeException
 from bot_messages import DEFAULT_CANCEL_REMARK
 
 from playwright.async_api import async_playwright, expect
@@ -33,37 +34,53 @@ class FBSProcessBot(StatesGroup):
     async def booking_slot(message: Message, state: FSMContext):
         data = await state.get_data()
 
+        singapore_tz = pytz.timezone('Asia/Singapore')
+
         # parse data needed for web booking
         booker_name = data['booker_name'] 
         date_obj = datetime.strptime(data['booking_date'], "%d/%m/%Y")
         booking_date = date_obj.strftime('%d-%b-%Y')
         div_avail_date = date_obj.strftime('%m/%d/%Y')
         duration = data['booking_duration']
-        start_time_datetime = datetime.strptime("1800/01/01 " + data['booking_start_time'], "%Y/%m/%d %H%M")
-        start_time = start_time_datetime.strftime("%Y/%m/%d %H:%M:%S")
-        end_time_datetime = start_time_datetime + timedelta(minutes=int(duration))
-        end_time = end_time_datetime.strftime("%Y/%m/%d %H:%M:%S")
 
-        # TODO: check date and time here, send resp message if invalid 
+        # the  1800/01/01 is the date used in the portal's options
+        real_start_time_datetime = datetime.strptime(booking_date + " " + data['booking_start_time'], "%d-%b-%Y %H%M").replace(tzinfo=singapore_tz)
+        option_start_time_datetime = datetime.strptime("1800/01/01 " + data['booking_start_time'], "%Y/%m/%d %H%M").replace(tzinfo=singapore_tz)
+        start_time = option_start_time_datetime.strftime("%Y/%m/%d %H:%M:%S")
+        option_end_time_datetime = (option_start_time_datetime + timedelta(minutes=int(duration))).replace(tzinfo=singapore_tz)
+        end_time = option_end_time_datetime.strftime("%Y/%m/%d %H:%M:%S")
 
         # TODO: nusnet id from verification - coded later 
-        
+
+        # TODO: check time here, send resp message if invalid 
+        now = datetime.now(singapore_tz)
+        if now + timedelta(minutes=30)> real_start_time_datetime:
+            raise InvalidBookingTimeException("Caught before booking - Booking time is invalid")
+
         async with async_playwright() as playwright:
             try: 
                 logger.info("booking - web booking has started")
 
                 ## start 
                 browser = await playwright.chromium.launch(headless=True, channel="chrome")
-                context = await browser.new_context(http_credentials={
-                    'username': utownfbs_login['username'], 
-                    'password': utownfbs_login['password']
-                })
-                page = await context.new_page()
+                # context = await browser.new_context(http_credentials={
+                #     'username': utownfbs_login['username'], 
+                #     'password': utownfbs_login['password']
+                # })
+                # page = await context.new_page()
+                page = await browser.new_page()
                 logger.info("booking - browser has been set up")
 
                 ## login to utownfbs
-                await page.goto("https://utownfbs.nus.edu.sg/utown/login.aspx")
-                await page.wait_for_load_state()
+                await page.goto("https://utownfbs.nus.edu.sg/utown/loginpage.aspx")
+                await page.locator('span[id="StudentLoginButton"]').click()
+                await page.wait_for_timeout(10000)
+
+                await page.locator('input[id="userNameInput"]').fill(utownfbs_login['username'])
+                await page.locator('input[id="passwordInput"]').fill(utownfbs_login['password'])
+                await page.locator('span[id="submitButton"]').click()
+                await page.wait_for_timeout(10000)
+
                 logger.info("booking - logged into utownfbs")
 
                 ## select location and date range 
@@ -86,10 +103,10 @@ class FBSProcessBot(StatesGroup):
                 (date) => {
                     const input = document.querySelector('input[name="StartDate$ctl03"]');
                     input.setAttribute('value', date);
-                    __doPostBack('StartDate$ctl02','CHANGE');   
                 }
                 """
                 await frame.evaluate(start_date_script, booking_date)
+                await frame.wait_for_timeout(1000)
 
                 # frame loading after onchange in start date element is unreliable
                 await frame.wait_for_load_state('load')
@@ -141,6 +158,11 @@ class FBSProcessBot(StatesGroup):
 
                 if error_element_count != 0:
                     error_text = await booking_frame.locator('span[id="labelMessage1"]').text_content()
+                    error_text = error_text.strip()
+
+                    if error_text == "Start time must be 30 minutes before currenttime":
+                        raise InvalidBookingTimeException("Caught during booking - " + error_text)
+
                     raise SlotTakenException(error_text if error_text else "This slot has been taken")
                 else:
                     booking_id = await booking_frame.locator('table[id="BookingReferenceNumber"]').locator('tbody').locator('tr').locator('td').nth(1).text_content()
@@ -164,26 +186,35 @@ class FBSProcessBot(StatesGroup):
 
         async with async_playwright() as playwright:
             try: 
-                ## start
-                browser = await playwright.chromium.launch(headless=True, channel="chrome")
-                context = await browser.new_context(http_credentials={
-                    'username': utownfbs_login['username'], 
-                    'password': utownfbs_login['password']
-                })
-                page = await context.new_page()
+                ## start 
+                browser = await playwright.chromium.launch(headless=False, channel="chrome")
+                # context = await browser.new_context(http_credentials={
+                #     'username': utownfbs_login['username'], 
+                #     'password': utownfbs_login['password']
+                # })
+                # page = await context.new_page()
+                page = await browser.new_page()
                 logger.info("cancellation - browser has been set up")
 
                 ## login to utownfbs
-                await page.goto("https://utownfbs.nus.edu.sg/utown/login.aspx")
-                await page.wait_for_load_state()
+                await page.goto("https://utownfbs.nus.edu.sg/utown/loginpage.aspx")
+                await page.locator('span[id="StudentLoginButton"]').click()
+                await page.wait_for_timeout(10000)
+
+                await page.locator('input[id="userNameInput"]').fill(utownfbs_login['username'])
+                await page.locator('input[id="passwordInput"]').fill(utownfbs_login['password'])
+                await page.locator('span[id="submitButton"]').click()
+                await page.wait_for_timeout(10000)
+
                 logger.info("cancellation - logged into utownfbs")
 
+
                 ## click 'manage booking'
-                dropdown_menu_locator = page.locator('div[id="menu_mainMenun2Items"]')
-                await page.locator('table[id="menu_mainMenu"]').locator('td[id="menu_mainMenun2"]').hover()
+                dropdown_menu_locator = page.locator('ul[id="menu_mainMenu:submenu:22"]')
+                await page.locator('div[id="menu_mainMenu"]').locator('li[aria-haspopup="menu_mainMenu:submenu:22"]').hover()
                 await expect(dropdown_menu_locator).to_be_visible()
 
-                await dropdown_menu_locator.locator('tr[id="menu_mainMenun16"]').get_by_text("My Personal Booking").click()
+                await dropdown_menu_locator.get_by_text("My Personal Booking").click()
                 await asyncio.sleep(15)
 
                 search_form_element_count = await page.locator('form[id="form1"]').count()
@@ -216,7 +247,7 @@ class FBSProcessBot(StatesGroup):
                 logger.info("cancellation - found booking to cancel")
 
                 # click cancel + enter cancel remarks 
-                await new_frame.locator('a[id="gridAdhocFacilityBookings_ctl03_ctl02_btnCancel"]').click()
+                await new_frame.locator('a[id="gridAdhocFacilityBookings_ctl03_btnCancel_0"]').click()
                 await asyncio.sleep(10)
 
                 view_form_element_count = await new_frame.locator('form[id="viewbooking"]').count()

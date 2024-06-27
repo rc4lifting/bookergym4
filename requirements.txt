@@ -42,9 +42,10 @@ pyee==11.1.0
 PyJWT==2.8.0
 pyparsing==3.1.2
 python-dotenv==1.0.1
+pytz==2024.1
 requests==2.32.3
 rsa==4.9
 typing_extensions==4.12.2
 uritemplate==4.1.1
-urllib3==2.2.2
+urllib3==2.2.1
 yarl==1.9.4

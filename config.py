@@ -34,7 +34,8 @@ class SlotTakenException(Exception):
 class ExpectedElementNotFound(Exception):
     '''thrown when expected element is not found'''
 
-
+class InvalidBookingTimeException(Exception):
+    '''thrown when booking time is invalid'''
 
 
 

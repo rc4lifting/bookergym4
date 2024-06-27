@@ -75,7 +75,7 @@ async def web(message: Message, state: FSMContext) -> None:
         buddy_name= 'test',
         buddy_room_number='04-23',
         buddy_telegram_handle='abc',
-        booking_date='24/06/2024',
+        booking_date='28/06/2024',
         booking_time_range='1200-1730',
         booking_start_time='1600',
         booking_duration='60'

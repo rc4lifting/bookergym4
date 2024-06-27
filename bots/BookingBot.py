@@ -3,7 +3,7 @@ from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
 from aiogram.enums import ParseMode
 
-from config import bot, booking_router, logger, SlotTakenException, ExpectedElementNotFound
+from config import bot, booking_router, logger, SlotTakenException, ExpectedElementNotFound, InvalidBookingTimeException
 import database_functions, utils, bot_messages
 
 from bots.FBSProcessBot import FBSProcessBot
@@ -89,7 +89,6 @@ class BookingBot(StatesGroup):
             await message.answer("Room Number not valid, please re-enter your room number: (e.g. 14-12A)")
 
     #T0D0: apply 1-8 days logic here
-
     @booking_router.message(get_buddy_telegram_handle)
     async def buddy_telegram_handle(message: Message, state: FSMContext):
         logger.info("8: Buddy Telehandle Received")
@@ -101,12 +100,11 @@ class BookingBot(StatesGroup):
         await state.update_data(buddy_telegram_handle=telehandle)
         await state.set_state(BookingBot.get_booking_date)
 
-
         # Singapore timezone
         singapore_tz = pytz.timezone('Asia/Singapore')
         now = datetime.now(singapore_tz)
 
-        # Calculate the end date of the booking period
+        # Sunday Noon: start booking for next week
         if now.weekday() == 6 and now.hour >= 12:
             next_sunday = now + timedelta(days=(13 - now.weekday()))
         else:
@@ -164,10 +162,12 @@ class BookingBot(StatesGroup):
         # Singapore timezone
         singapore_tz = pytz.timezone('Asia/Singapore')
         now = datetime.now(singapore_tz)
-        selected_date = (await state.get_data())['booking_date']
+        data = await state.get_data()
+        selected_date = data['booking_date']
 
+        # logic for first avaliable time block
         if selected_date == now.strftime("%d/%m/%Y"):
-            min_start_time_block = (now + timedelta(minutes=30)).replace(second=0, microsecond=0)
+            min_start_time_block = (now + timedelta(minutes=45)).replace(second=0, microsecond=0)
             if min_start_time_block.minute < 30:
                 min_start_time_block = min_start_time_block.replace(minute=30)
             else:
@@ -185,8 +185,10 @@ class BookingBot(StatesGroup):
         logger.info("11: Received Booking Start Time")
         await state.update_data(booking_start_time=callback_query.data)
         await state.set_state(BookingBot.get_booking_duration)
-        await callback_query.message.answer("Select the duration of your booking:", reply_markup=utils.create_inline(
-            {"1 hour": "60", "1 hour 30 mins": "90"}, row_width=2))
+        await callback_query.message.answer(
+            "Select the duration of your booking:", 
+            reply_markup=utils.create_inline({"1 hour": "60", "1 hour 30 mins": "90"}, row_width=2)
+        )
 
     @booking_router.callback_query(get_booking_duration)
     async def booking_duration_callback(callback_query: CallbackQuery, state: FSMContext):
@@ -206,10 +208,11 @@ class BookingBot(StatesGroup):
         )
 
         # setting default booking duration
-        if data['booking_duration'] != "60" or data['booking_duration'] != "90":
+        if data['booking_duration'] not in ["60", "90"]:
             data['booking_duration'] = "90"
 
         end_time_string = utils.cal_end_time(data['booking_start_time'], data['booking_duration'])
+        print(end_time_string)
         booking_date_string = utils.get_formatted_date_from_string(data['booking_date'])
         booking_datetime_string = bot_messages.BOOKING_DATETIME_STRING.format(booking_date_string, data['booking_start_time'], end_time_string)
         await state.set_state(BookingBot.confirm_declaration)
@@ -275,7 +278,7 @@ class BookingBot(StatesGroup):
         try: 
             new_state = await FBSProcessBot.start_web_booking(message, state)
             state = new_state
-            #print("in web booking try block")
+            print("in web booking try block")
         except SlotTakenException as e: 
             logger.error(f"WEB BOOKING SlotTakenException: {e}")
             await message.answer(f"{e}\n\n{booking_details_string}\n\nSend /book to book another slot")
@@ -283,6 +286,10 @@ class BookingBot(StatesGroup):
         except ExpectedElementNotFound as e: 
             logger.error(f"WEB BOOKING ExpectedElementNotFound: {e}")
             await message.answer(f"An error has occurred when booking your slot:\n\n{booking_details_string}\n\nSend /exco to report the issue to us")
+            await state.clear()
+        except InvalidBookingTimeException as e:
+            logger.error(f"WEB BOOKING InvalidBookingTimeException: {e}")
+            await message.answer(f"Invalid Booking Time Chosen\n\n{booking_details_string}\n\nSend /book to book a new slot with a new booking time")
             await state.clear()
         except Exception as e:
             logger.error(f"WEB BOOKING ERROR: {e}")
@@ -293,14 +300,14 @@ class BookingBot(StatesGroup):
             web_booking_success = True
 
             data = await state.get_data()
-            #booking_details["utownfbsBookingId"] = data.get('utownfbsBookingId')
-            #database_functions.create_data(f"/slots", booking_details, True)
+            booking_details["utownfbsBookingId"] = data.get('utownfbsBookingId')
+            database_functions.create_data(f"/slots", booking_details, True)
             
         # Call Schedule for booking on FBS
         if web_booking_success:
             try:
-                #new_state = await ScheduleBot.update_schedule(message, state)
-                #state = new_state
+                new_state = await ScheduleBot.update_schedule(message, state)
+                state = new_state
                 print("in scheduling try block")
             except Exception as e:
                 logger.error(f"Update Schedule Error: {e}")
