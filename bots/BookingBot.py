@@ -5,8 +5,12 @@ from aiogram.enums import ParseMode
 
 from config import bot, booking_router, logger, SlotTakenException, ExpectedElementNotFound
 import database_functions, utils, bot_messages
+
 from bots.FBSProcessBot import FBSProcessBot
+
 from bots.ScheduleBot import ScheduleBot
+from datetime import datetime, timedelta
+import pytz
 
 class BookingBot(StatesGroup):
     # states in booking form  
@@ -66,7 +70,6 @@ class BookingBot(StatesGroup):
         await state.set_state(BookingBot.get_buddy_room_number)
         await message.answer("What's your buddy's room number? (e.g. 17-16)")
 
-
     @booking_router.message(get_buddy_room_number)
     async def buddy_room_number(message: Message, state: FSMContext):
         logger.info("6: Buddy Room Number Received")
@@ -84,8 +87,9 @@ class BookingBot(StatesGroup):
         else:
             logger.info("Invalid Buddy Room Number!")
             await message.answer("Room Number not valid, please re-enter your room number: (e.g. 14-12A)")
-    
-    # TODO: apply 1-8 days logic here 
+
+    #T0D0: apply 1-8 days logic here
+
     @booking_router.message(get_buddy_telegram_handle)
     async def buddy_telegram_handle(message: Message, state: FSMContext):
         logger.info("8: Buddy Telehandle Received")
@@ -96,28 +100,58 @@ class BookingBot(StatesGroup):
 
         await state.update_data(buddy_telegram_handle=telehandle)
         await state.set_state(BookingBot.get_booking_date)
-        await message.answer("Please select the booking date:", reply_markup=utils.create_inline(
-            {
-                "26 June 2024": "26/06/2024", 
-                "27 June 2024": "27/06/2024", 
-                "28 June 2024": "28/06/2024",
-                "29 June 2024": "29/06/2024", 
-                "30 June 2024": "30/06/2024"
-                #"26 June 2024": "08/06/2024", 
-                #"27 June 2024": "09/06/2024", 
-                #"10 June 2024": "10/06/2024"
-            }, row_width=2))
 
-    # TODO: apply time logic here 
+
+        # Singapore timezone
+        singapore_tz = pytz.timezone('Asia/Singapore')
+        now = datetime.now(singapore_tz)
+
+        # Calculate the end date of the booking period
+        if now.weekday() == 6 and now.hour >= 12:
+            next_sunday = now + timedelta(days=(13 - now.weekday()))
+        else:
+            next_sunday = now + timedelta(days=(6 - now.weekday()))
+
+        date_options = {}
+        current_date = now
+        while current_date <= next_sunday:
+            date_str = current_date.strftime("%d/%m/%Y")
+            display_str = current_date.strftime("%d %B %Y")
+            date_options[display_str] = date_str
+            current_date += timedelta(days=1)
+
+        await message.answer("Please select the booking date:", reply_markup=utils.create_inline(date_options, row_width=2))
+
     @booking_router.callback_query(get_booking_date)
     async def booking_date_callback(callback_query: CallbackQuery, state: FSMContext):
         logger.info("9: Received Booking Date")
         await state.update_data(booking_date=callback_query.data)
         await state.set_state(BookingBot.get_booking_time_range)
+
+        # Singapore timezone
+        singapore_tz = pytz.timezone('Asia/Singapore')
+        now = datetime.now(singapore_tz)
+
+        time_ranges = {
+            "0000 - 0530": "0000-0530",
+            "0600 - 1130": "0600-1130",
+            "1200 - 1730": "1200-1730",
+            "1800 - 2330": "1800-2330"
+        }
+
+        # Remove time ranges that are in the past for today
+        current_time = now.strftime("%H%M")
+        selected_date = callback_query.data
+        if selected_date == now.strftime("%d/%m/%Y"):
+            for time_range in list(time_ranges.keys()):
+                end_time = time_ranges[time_range].split("-")[1]
+                if end_time <= current_time:
+                    del time_ranges[time_range]
+
         await callback_query.message.answer(
-                "Please select the time range of your booking start time:", 
-                reply_markup=utils.create_inline({"0000 - 0530": "0000-0530", "0600 - 1130": "0600-1130", "1200 - 1730": "1200-1730", "1800 - 2330": "1800-2330"}, row_width=2)
-            )
+            "Please select the time range of your booking start time:",
+            reply_markup=utils.create_inline(time_ranges, row_width=2)
+        )
 
     @booking_router.callback_query(get_booking_time_range)
     async def booking_time_range_callback(callback_query: CallbackQuery, state: FSMContext):
@@ -126,10 +160,25 @@ class BookingBot(StatesGroup):
         range_extremes = callback_query.data.split("-")
 
         await state.set_state(BookingBot.get_booking_start_time)
+
+        # Singapore timezone
+        singapore_tz = pytz.timezone('Asia/Singapore')
+        now = datetime.now(singapore_tz)
+        selected_date = (await state.get_data())['booking_date']
+
+        if selected_date == now.strftime("%d/%m/%Y"):
+            min_start_time_block = (now + timedelta(minutes=30)).replace(second=0, microsecond=0)
+            if min_start_time_block.minute < 30:
+                min_start_time_block = min_start_time_block.replace(minute=30)
+            else:
+                min_start_time_block = (min_start_time_block + timedelta(minutes=30)).replace(minute=0)
+        else:
+            min_start_time_block = datetime.strptime(range_extremes[0], "%H%M")
+
         await callback_query.message.answer(
-                "Please select the start time of your booking:", 
-                reply_markup=utils.create_start_time_keyboard(range_extremes[0], range_extremes[1], 30)
-            )
+            "Please select the start time of your booking:",
+            reply_markup=utils.create_start_time_keyboard(min_start_time_block.strftime("%H%M"), range_extremes[1], 30)
+        )
 
     @booking_router.callback_query(get_booking_start_time)
     async def booking_start_time_callback(callback_query: CallbackQuery, state: FSMContext):
@@ -242,16 +291,17 @@ class BookingBot(StatesGroup):
         else:
             logger.info("WEB BOOKING SUCCESSFUL!")
             web_booking_success = True
+
             data = await state.get_data()
-            booking_details["utownfbsBookingId"] = data.get('utownfbsBookingId')
-            database_functions.create_data(f"/slots", booking_details, True)
+            #booking_details["utownfbsBookingId"] = data.get('utownfbsBookingId')
+            #database_functions.create_data(f"/slots", booking_details, True)
             
         # Call Schedule for booking on FBS
         if web_booking_success:
             try:
-                new_state = await ScheduleBot.update_schedule(message, state)
-                state = new_state
-                #print("in scheduling try block")
+                #new_state = await ScheduleBot.update_schedule(message, state)
+                #state = new_state
+                print("in scheduling try block")
             except Exception as e:
                 logger.error(f"Update Schedule Error: {e}")
                 await message.answer(f"Your booking below has been confirmed\n\n{booking_details_string}\n\n" + 
