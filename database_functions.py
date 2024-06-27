@@ -2,6 +2,7 @@ import firebase_admin
 import asyncio
 
 from firebase_admin import db, credentials
+from datetime import datetime
 
 import caches
 
@@ -47,21 +48,16 @@ def data_exists(path: str):
     data = ref.get()
     return data is not None
 
-
 ## specific use case funcitons
 # check if user exists
 def user_exists(chat_id: str):
     path = f"/users/{chat_id}"
     return data_exists(path)
 
-# get booking counter
-def get_booking_counter():
-    path = "/bookingCounter"
-    number = db.reference(path).get()
-    return number
+def get_slots_after_time(curr_time: datetime, chat_id: str):
+    path = f"/slots"
+    ref = db.reference(path)
 
-# increment booking counter
-def increment_booking_counter():
-    path = "/bookingCounter"
-    number = db.reference(path).get()
-    return db.reference(path).set(number + 1)
+    slots = ref.order_by_child('bookedUserId').equal_to(chat_id).get()
+
+    return slots 

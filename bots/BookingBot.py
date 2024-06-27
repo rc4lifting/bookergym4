@@ -3,9 +3,11 @@ from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
 from aiogram.enums import ParseMode
 
-from config import bot, booking_router, logger, SlotTakenException
+from config import bot, booking_router, logger, SlotTakenException, ExpectedElementNotFound
 import database_functions, utils, bot_messages
-from bots.FBSBookerBot import FBSBookerBot #from bots.FBSProcessBot import FBSProcessBot, have not changed to FBSProcessBot
+
+from bots.FBSProcessBot import FBSProcessBot
+
 from bots.ScheduleBot import ScheduleBot
 from datetime import datetime, timedelta
 import pytz
@@ -98,6 +100,7 @@ class BookingBot(StatesGroup):
 
         await state.update_data(buddy_telegram_handle=telehandle)
         await state.set_state(BookingBot.get_booking_date)
+
 
         # Singapore timezone
         singapore_tz = pytz.timezone('Asia/Singapore')
@@ -240,7 +243,7 @@ class BookingBot(StatesGroup):
         logger.info("15: Declared and Ready to Book")
 
         message = callback_query.message
-        await bot.send_message(message.chat.id, "Received your booking! Processing now...")
+        await bot.send_message(message.chat.id, "Received your booking! Processing now...\nThis process may take up to 5 minutes")
         data = await state.get_data()
 
         # TODO: add buddyid if buddy exists in db
@@ -268,14 +271,18 @@ class BookingBot(StatesGroup):
 
         web_booking_success = False
 
-        # Call FBSBookerBot for booking on FBS, have not changed to FBSProcessBot
+        # Call FBSProcessBot for booking on FBS
         try: 
-            #new_state = await FBSBookerBot.start_web_booking(message, state), have not changed to FBSProcessBot
-            #state = new_state
-            print("in web booking try block")
-        except SlotTakenException as e: # to test this error
+            new_state = await FBSProcessBot.start_web_booking(message, state)
+            state = new_state
+            #print("in web booking try block")
+        except SlotTakenException as e: 
             logger.error(f"WEB BOOKING SlotTakenException: {e}")
             await message.answer(f"{e}\n\n{booking_details_string}\n\nSend /book to book another slot")
+            await state.clear()
+        except ExpectedElementNotFound as e: 
+            logger.error(f"WEB BOOKING ExpectedElementNotFound: {e}")
+            await message.answer(f"An error has occurred when booking your slot:\n\n{booking_details_string}\n\nSend /exco to report the issue to us")
             await state.clear()
         except Exception as e:
             logger.error(f"WEB BOOKING ERROR: {e}")
@@ -301,10 +308,6 @@ class BookingBot(StatesGroup):
                     "However, schedule has failed to update your slot. Send /exco to report the issue to us")
                 await state.clear()
             else: 
-                # TODO: generate slot id and store booking details in db
-                slot_id = database_functions.get_booking_counter() + 1
-                #database_functions.create_data(f"/slots/{slot_id}", booking_details)
-                #database_functions.increment_booking_counter()
                 logger.info("ENITRE BOOKING SUCCESSFUL!")
                 await message.answer(f"Your booking has been successfully processed!\n\nHere are your slot details\n{booking_details_string}\n\nSend /schedule to view the updated schedule")
                 await state.clear()
