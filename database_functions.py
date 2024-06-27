@@ -2,6 +2,7 @@ import firebase_admin
 import asyncio
 
 from firebase_admin import db, credentials
+from datetime import datetime
 
 import caches
 
@@ -52,3 +53,11 @@ def data_exists(path: str):
 def user_exists(chat_id: str):
     path = f"/users/{chat_id}"
     return data_exists(path)
+
+def get_slots_after_time(curr_time: datetime, chat_id: str):
+    path = f"/slots"
+    ref = db.reference(path)
+
+    slots = ref.order_by_child('bookedUserId').equal_to(chat_id).get()
+
+    return slots 

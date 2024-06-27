@@ -23,11 +23,16 @@ dp = Dispatcher()
 
 # for booking form route
 booking_router = Router() 
+cancellation_router = Router()
 dp.include_router(booking_router)
+dp.include_router(cancellation_router)
 
 # created errors
 class SlotTakenException(Exception):
     '''thrown when slot is already taken'''
+
+class ExpectedElementNotFound(Exception):
+    '''thrown when expected element is not found'''
 
 
 
