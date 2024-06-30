@@ -187,7 +187,7 @@ class FBSProcessBot(StatesGroup):
         async with async_playwright() as playwright:
             try: 
                 ## start 
-                browser = await playwright.chromium.launch(headless=False, channel="chrome")
+                browser = await playwright.chromium.launch(headless=True, channel="chrome")
                 # context = await browser.new_context(http_credentials={
                 #     'username': utownfbs_login['username'], 
                 #     'password': utownfbs_login['password']

@@ -63,24 +63,24 @@ async def exco(message: Message, state: FSMContext) -> None:
 async def schedule(message: Message, state: FSMContext) -> None:
     await message.answer(bot_messages.SCHEDULE_MESSAGE,parse_mode=ParseMode.HTML)
 
-# '/web' command: use for testing web automation, delete when all done 
-@dp.message(Command('web'))
-async def web(message: Message, state: FSMContext) -> None:
-    await state.set_state(FBSProcessBot.start_of_web_booking)
-    await bot.send_message(message.chat.id, "Starting web booking process")
-    await state.update_data(
-        booker_name='Benjamin Seow',
-        telehandle='benjaminseowww',
-        booker_room_number= '17-16',
-        buddy_name= 'test',
-        buddy_room_number='04-23',
-        buddy_telegram_handle='abc',
-        booking_date='28/06/2024',
-        booking_time_range='1200-1730',
-        booking_start_time='1600',
-        booking_duration='60'
-    )
-    await FBSProcessBot.start_web_booking(message, state)
+# # '/web' command: use for testing web automation, delete when all done 
+# @dp.message(Command('web'))
+# async def web(message: Message, state: FSMContext) -> None:
+#     await state.set_state(FBSProcessBot.start_of_web_booking)
+#     await bot.send_message(message.chat.id, "Starting web booking process")
+#     await state.update_data(
+#         booker_name='Benjamin Seow',
+#         telehandle='benjaminseowww',
+#         booker_room_number= '17-16',
+#         buddy_name= 'test',
+#         buddy_room_number='04-23',
+#         buddy_telegram_handle='abc',
+#         booking_date='28/06/2024',
+#         booking_time_range='1200-1730',
+#         booking_start_time='1600',
+#         booking_duration='60'
+#     )
+#     await FBSProcessBot.start_web_booking(message, state)
 
 # global error handling, for unexpected errors
 @dp.error()

@@ -212,7 +212,6 @@ class BookingBot(StatesGroup):
             data['booking_duration'] = "90"
 
         end_time_string = utils.cal_end_time(data['booking_start_time'], data['booking_duration'])
-        print(end_time_string)
         booking_date_string = utils.get_formatted_date_from_string(data['booking_date'])
         booking_datetime_string = bot_messages.BOOKING_DATETIME_STRING.format(booking_date_string, data['booking_start_time'], end_time_string)
         await state.set_state(BookingBot.confirm_declaration)
