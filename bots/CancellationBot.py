@@ -64,8 +64,9 @@ class CancellationBot(StatesGroup):
             # call FBSProcessBot for cancellation
             try:
                 # TODO: implement cancel_slot
-                new_state = await FBSProcessBot.cancel_slot(message, state)
-                state = new_state
+                print("in web cancellation try block")
+                #new_state = await FBSProcessBot.cancel_slot(message, state)
+                #state = new_state
             except ExpectedElementNotFound as e: 
                 logger.error(f"WEB CANCELLATION ExpectedElementNotFound: {e}")
                 await message.answer(f"An error has occurred when booking your slot:\n\n{booking_details_string}\n\nSend /exco to report the issue to us")
