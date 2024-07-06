@@ -58,7 +58,12 @@ schedule_credentials = {
   "universe_domain": "googleapis.com"
 }
 
+#UTownFBS Portal Login
 utownfbs_login = {
   "username": utownfbs_username,
   "password": utownfbs_password
 }
+
+# Email sending 
+otp_sender_email = os.getenv('OTP_SENDER_EMAIL')
+otp_sender_password = os.getenv('OTP_SENDER_PASSWORD')
