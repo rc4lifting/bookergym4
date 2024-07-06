@@ -2,7 +2,7 @@ import os
 import dotenv
 from dotenv import load_dotenv
 
-dotenv.load_dotenv()
+dotenv.load_dotenv('.env')
 
 # Environment Variables
 api_token = os.getenv('TELEGRAM_BOT_API_KEY')
@@ -12,14 +12,14 @@ google_cloud_project_id = os.getenv('GOOGLE_CLOUD_PROJECT_ID')
 firebase_api_key = os.getenv('FIREBASE_API_KEY')
 firebase_database_url = os.getenv('FIREBASE_DATABASE_URL')
 firebase_private_key_id = os.getenv('FIREBASE_PRIVATE_KEY_ID')
-firebase_private_key = os.getenv('FIREBASE_PRIVATE_KEY').replace("\\n", '\n')
+firebase_private_key = os.getenv('FIREBASE_PRIVATE_KEY').replace('\\n', '\n')
 firebase_client_email = os.getenv('FIREBASE_CLIENT_EMAIL')
 firebase_client_id = os.getenv('FIREBASE_CLIENT_ID')
 firebase_client_x509_cert_url = os.getenv("FIREBASE_CLIENT_X509_CERT_URL")
 
 schedule_gsheet_id = os.getenv('SCHEDULE_GSHEET_ID')
 schedule_private_key_id = os.getenv('SCHEDULE_PRIVATE_KEY_ID')
-schedule_private_key = os.getenv('SCHEDULE_PRIVATE_KEY').replace("\\n", '\n')
+schedule_private_key = os.getenv('SCHEDULE_PRIVATE_KEY').replace('\\n', '\n')
 schedule_client_email = os.getenv('SCHEDULE_CLIENT_EMAIL')
 schedule_client_id = os.getenv('SCHEDULE_CLIENT_ID')
 schedule_client_x509_cert_url = os.getenv("SCHEDULE_CLIENT_X509_CERT_URL")

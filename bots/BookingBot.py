@@ -252,6 +252,17 @@ class BookingBot(StatesGroup):
         # Storing name and room number into db logic: if inside, replace it, if not add it 
         #database_functions.set_data(f"/users/{message.chat.id}/name", data.get('booker_name', ''))
         #database_functions.set_data(f"/users/{message.chat.id}/roomNumber", data.get('booker_room_number', ''))
+        singapore_tz = pytz.timezone('Asia/Singapore')
+        slot_dt = singapore_tz.localize(datetime.strptime(data.get('booking_date') + " " + data['booking_start_time'], "%d/%m/%Y %H%M"))
+        slot_timestamp = slot_dt.astimezone(pytz.utc).timestamp()
+        
+        print(data.get('booking_date') + " " + data['booking_start_time'])
+        print(slot_dt)
+        print(f"timestamp: {slot_timestamp}")
+        
+        aware_datetime = datetime.fromtimestamp(slot_timestamp, tz=singapore_tz)
+        
+        print(f"slot dt after converting: {aware_datetime}")
 
         # updating booking details
         booking_details = {
@@ -264,7 +275,8 @@ class BookingBot(StatesGroup):
             },
             "date": data.get('booking_date', ''),
             "startTime": data.get('booking_start_time', ''),
-            "duration": int(data.get('booking_duration', 90))
+            "duration": int(data.get('booking_duration', 90)),
+            "timestamp": slot_timestamp
         }
 
         end_time_string = utils.cal_end_time(booking_details['startTime'], booking_details['duration'])
@@ -275,8 +287,8 @@ class BookingBot(StatesGroup):
 
         # Call FBSProcessBot for booking on FBS
         try: 
-            new_state = await FBSProcessBot.start_web_booking(message, state)
-            state = new_state
+            #new_state = await FBSProcessBot.start_web_booking(message, state)
+            #state = new_state
             print("in web booking try block")
         except SlotTakenException as e: 
             logger.error(f"WEB BOOKING SlotTakenException: {e}")
@@ -299,14 +311,14 @@ class BookingBot(StatesGroup):
             web_booking_success = True
 
             data = await state.get_data()
-            booking_details["utownfbsBookingId"] = data.get('utownfbsBookingId')
+            booking_details["utownfbsBookingId"] = "test123455555" #data.get('utownfbsBookingId')
             database_functions.create_data(f"/slots", booking_details, True)
             
         # Call Schedule for booking on FBS
         if web_booking_success:
             try:
-                new_state = await ScheduleBot.update_schedule(message, state)
-                state = new_state
+                #new_state = await ScheduleBot.update_schedule(message, state)
+                #state = new_state
                 print("in scheduling try block")
             except Exception as e:
                 logger.error(f"Update Schedule Error: {e}")

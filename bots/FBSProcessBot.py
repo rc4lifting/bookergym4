@@ -43,11 +43,11 @@ class FBSProcessBot(StatesGroup):
         div_avail_date = date_obj.strftime('%m/%d/%Y')
         duration = data['booking_duration']
 
-        # the  1800/01/01 is the date used in the portal's options
-        real_start_time_datetime = datetime.strptime(booking_date + " " + data['booking_start_time'], "%d-%b-%Y %H%M").replace(tzinfo=singapore_tz)
-        option_start_time_datetime = datetime.strptime("1800/01/01 " + data['booking_start_time'], "%Y/%m/%d %H%M").replace(tzinfo=singapore_tz)
+        # the  1800/01/01 is the date used in the portal's options, TODO: debug localize
+        real_start_time_datetime = singapore_tz.localize(datetime.strptime(booking_date + " " + data['booking_start_time'], "%d-%b-%Y %H%M"))
+        option_start_time_datetime = singapore_tz.localize(datetime.strptime("1800/01/01 " + data['booking_start_time'], "%Y/%m/%d %H%M"))
         start_time = option_start_time_datetime.strftime("%Y/%m/%d %H:%M:%S")
-        option_end_time_datetime = (option_start_time_datetime + timedelta(minutes=int(duration))).replace(tzinfo=singapore_tz)
+        option_end_time_datetime = singapore_tz.localize(option_start_time_datetime + timedelta(minutes=int(duration)))
         end_time = option_end_time_datetime.strftime("%Y/%m/%d %H:%M:%S")
 
         # TODO: nusnet id from verification - coded later 
@@ -97,7 +97,7 @@ class FBSProcessBot(StatesGroup):
 
                 # Date Range: Very Unrealiable
                 # change event may or may not happen because of changing it programmically
-
+                # TODO: doPostBack__ now cant be done inside evaluate script
                 start_input_locator = frame.locator('input[name="StartDate$ctl03"]')
                 start_date_script = """ 
                 (date) => {
