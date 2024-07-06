@@ -3,6 +3,7 @@ import asyncio
 
 from firebase_admin import db, credentials
 from datetime import datetime
+import pytz
 
 import caches
 
@@ -57,7 +58,10 @@ def user_exists(chat_id: str):
 def get_slots_after_time(curr_time: datetime, chat_id: str):
     path = f"/slots"
     ref = db.reference(path)
+    
+    curr_timestamp = curr_time.astimezone(pytz.utc).timestamp()
 
-    slots = ref.order_by_child('bookedUserId').equal_to(chat_id).get()
+    after_curr_slots = ref.order_by_child('timestamp').start_at(curr_timestamp).get()
+    filtered_slots = {key: val for key, val in after_curr_slots.items() if 'bookedUserId' in val and val['bookedUserId'] == chat_id}
 
-    return slots 
+    return filtered_slots

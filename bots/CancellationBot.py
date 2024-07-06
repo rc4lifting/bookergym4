@@ -11,7 +11,7 @@ from bot_messages import CANCEL_NOSLOTS_MESSAGE, BOOKING_DATETIME_STRING
 
 from playwright.async_api import async_playwright, expect
 from datetime import datetime, timezone, timedelta
-from zoneinfo import ZoneInfo
+import pytz
 
 
 class CancellationBot(StatesGroup):
@@ -22,7 +22,8 @@ class CancellationBot(StatesGroup):
         await state.clear()
 
         # get current time 
-        curr_datetime = datetime.now(ZoneInfo("Asia/Singapore"))
+        singapore_tz = pytz.timezone('Asia/Singapore')
+        curr_datetime = datetime.now(singapore_tz)
 
         # query database on slots after the current time, in format of {"display string": "slot_id", ...}
         # TODO: implement get_slots_after_time
@@ -64,8 +65,9 @@ class CancellationBot(StatesGroup):
             # call FBSProcessBot for cancellation
             try:
                 # TODO: implement cancel_slot
-                new_state = await FBSProcessBot.cancel_slot(message, state)
-                state = new_state
+                print("in web cancelltation try block")
+                #new_state = await FBSProcessBot.cancel_slot(message, state)
+                #state = new_state
             except ExpectedElementNotFound as e: 
                 logger.error(f"WEB CANCELLATION ExpectedElementNotFound: {e}")
                 await message.answer(f"An error has occurred when booking your slot:\n\n{booking_details_string}\n\nSend /exco to report the issue to us")
@@ -91,8 +93,9 @@ class CancellationBot(StatesGroup):
         if web_cancel_success:
             # call ScheduleBot to remove from sheet
             try:
-                new_state = await ScheduleBot.remove_from_schedule(message, state)
-                state = new_state
+                print("in remove from schedule try block")
+                #new_state = await ScheduleBot.remove_from_schedule(message, state)
+                #state = new_state
             except Exception as e:
                 logger.error(f"Removing From Schedule Error: {e}")
                 await state.clear()
