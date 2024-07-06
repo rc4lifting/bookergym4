@@ -24,8 +24,10 @@ dp = Dispatcher()
 # for booking form route
 booking_router = Router() 
 cancellation_router = Router()
+verification_router = Router()
 dp.include_router(booking_router)
 dp.include_router(cancellation_router)
+dp.include_router(verification_router)
 
 # created errors
 class SlotTakenException(Exception):

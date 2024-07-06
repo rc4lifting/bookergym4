@@ -74,8 +74,8 @@ class CancellationBot(StatesGroup):
                 await state.clear()
             except Exception as e:
                 logger.error(f"Cancellation Error: {e}")
-                raise e
                 await state.clear()
+                raise e
             else: 
                 logger.info("WEB CANCELLATION SUCCESSFUL!")
                 web_cancel_success = True

@@ -255,14 +255,6 @@ class BookingBot(StatesGroup):
         singapore_tz = pytz.timezone('Asia/Singapore')
         slot_dt = singapore_tz.localize(datetime.strptime(data.get('booking_date') + " " + data['booking_start_time'], "%d/%m/%Y %H%M"))
         slot_timestamp = slot_dt.astimezone(pytz.utc).timestamp()
-        
-        print(data.get('booking_date') + " " + data['booking_start_time'])
-        print(slot_dt)
-        print(f"timestamp: {slot_timestamp}")
-        
-        aware_datetime = datetime.fromtimestamp(slot_timestamp, tz=singapore_tz)
-        
-        print(f"slot dt after converting: {aware_datetime}")
 
         # updating booking details
         booking_details = {

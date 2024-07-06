@@ -15,6 +15,7 @@ from config import dp, bot, booking_router, logger
 from bots.BookingBot import BookingBot
 from bots.CancellationBot import CancellationBot
 from bots.FBSProcessBot import FBSProcessBot
+from bots.VerificationBot import VerificationBot
 
 # Logging configuration
 logging.basicConfig(level=logging.INFO)
@@ -27,10 +28,12 @@ async def command_start_handler(message: Message, state: FSMContext) -> None:
     user = message.from_user
     telehandle = user.username
 
+    # TODO: to move adding user to db in /register command
     path = f"/users/{message.chat.id}"
     if not database_functions.user_exists(message.chat.id):
         data = {
             "telehandle": f"{telehandle}",
+            "isVerified": False
         }
         database_functions.create_data(path, data)
         
@@ -38,14 +41,32 @@ async def command_start_handler(message: Message, state: FSMContext) -> None:
 
 # '/help' command
 @dp.message(Command('help'))
-async def help(message: Message) -> None:
+async def help(message: Message, state: FSMContext) -> None:
     await message.answer(bot_messages.HELP_MESSAGE, parse_mode=ParseMode.HTML)
+
+# '/register' command
+@dp.message(Command('register'))
+async def register(message: Message, state: FSMContext) -> None:
+    # TODO: registration process
+    await message.answer("todo registration", parse_mode=ParseMode.HTML)
+    
+# '/verify' command
+@dp.message(Command('verify'))
+async def verify(message: Message, state: FSMContext) -> None:
+    await VerificationBot.start_verify(message, state)
 
 # '/book' command 
 @dp.message(Command('book'))
 async def book(message: Message, state: FSMContext):
     logger.info("Received /book command")
-    await BookingBot.start_booking(message, state)
+    if not database_functions.user_exists(message.chat.id):
+        await message.answer(bot_messages.NOT_REGISTERED_MESSAGE, parse_mode=ParseMode.HTML)
+        await state.clear()
+    elif not database_functions.user_is_verified(message.chat.id):
+        await message.answer(bot_messages.NOT_VERIFIED_MESSAGE, parse_mode=ParseMode.HTML)
+        await state.clear()
+    else:
+        await BookingBot.start_booking(message, state)
 
 # '/cancel' command
 @dp.message(Command('cancel'))
@@ -103,10 +124,3 @@ async def main() -> None:
 
 if __name__ == "__main__":
     asyncio.run(main())
-
-
-
-
-
-
-

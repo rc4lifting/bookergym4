@@ -55,6 +55,12 @@ def user_exists(chat_id: str):
     path = f"/users/{chat_id}"
     return data_exists(path)
 
+# check if user is verified
+def user_is_verified(chat_id: str):
+    path = f"/users/{chat_id}/isVerified"
+    return read_data(path) == True
+
+# get all users slot after time given
 def get_slots_after_time(curr_time: datetime, chat_id: str):
     path = f"/slots"
     ref = db.reference(path)
@@ -65,3 +71,4 @@ def get_slots_after_time(curr_time: datetime, chat_id: str):
     filtered_slots = {key: val for key, val in after_curr_slots.items() if 'bookedUserId' in val and val['bookedUserId'] == chat_id}
 
     return filtered_slots
+
