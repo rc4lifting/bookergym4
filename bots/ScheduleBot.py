@@ -16,7 +16,10 @@ from config import dp, bot, booking_router, logger
 from caches import schedule_gsheet_id, schedule_credentials
 
 class ScheduleBot(StatesGroup): 
-
+    
+    sheet_format_body = {
+    }
+    
     # gsheet details 
     scopes = ['https://www.googleapis.com/auth/cloud-platform', 'https://www.googleapis.com/auth/spreadsheets']
     credentials = Credentials.from_service_account_info(schedule_credentials, scopes = scopes)
@@ -96,7 +99,7 @@ class ScheduleBot(StatesGroup):
         sheet_name = "Sheet1!"
 
         request_body = {
-            "ranges": cells_to_remove
+            "ranges": [(sheet_name + cell) for cell in cells_to_remove]
         }
 
         request = ScheduleBot.spreadsheets.values().batchClear(
@@ -111,3 +114,12 @@ class ScheduleBot(StatesGroup):
         logger.info("successfully removed to schedule!")
 
         return state
+    
+    async def create_new_sheet(sheet_name: str):
+        # create new sheet
+        
+        # conditional formatting
+        pass
+    
+    async def delete_old_sheet(sheet_name: str):
+        pass
