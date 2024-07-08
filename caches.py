@@ -65,5 +65,4 @@ utownfbs_login = {
 }
 
 # Email sending 
-otp_sender_email = os.getenv('OTP_SENDER_EMAIL')
-otp_sender_password = os.getenv('OTP_SENDER_PASSWORD')
+resend_api_key = os.environ["RESEND_API_KEY"]

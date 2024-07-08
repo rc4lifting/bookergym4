@@ -3,9 +3,9 @@ from aiogram.types import Message
 from aiogram.fsm.context import FSMContext
 
 import pyotp
-import smtplib, ssl
+import resend
 
-from caches import otp_sender_email, otp_sender_password, otp_email_port
+from caches import resend_api_key
 from config import bot, verification_router, logger
 import database_functions, bot_messages
 
@@ -27,24 +27,31 @@ class VerificationBot(StatesGroup):
     @verification_router.message(start_auth)
     async def send_email(message: Message, state: FSMContext):
         # prep email contents and connection
-        subject = bot_messages.OTP_EMAIL_SUBJECT
-        receiver_email = database_functions.get_data(f"/users/{message.chat.id}/email")
+        receiver_email = database_functions.read_data(f"/users/{message.chat.id}/email")
     
         # set up email server
-        context = ssl.create_default_context()    
+        #context = ssl.create_default_context()   
+        resend.api_key = resend_api_key 
         
         # create the OTP 
         base = pyotp.random_base32()
         totp = pyotp.TOTP(base, interval=60)
         await state.update_data(totp=totp)
         
-        # send email with OTP
-        body = bot_messages.OTP_EMAIL_MESSAGE.format(totp.now())
+        # send email with OTP        
+        # with smtplib.SMTP_SSL("smtp.gmail.com", otp_email_port, context=context) as server:
+        #     server.login(otp_sender_email, otp_sender_password)
+        #     server.sendmail(otp_sender_email, receiver_email, body)
+        #     # TODO: debug, maybe have ssl cert error
         
-        with smtplib.SMTP_SSL("smtp.gmail.com", otp_email_port, context=context) as server:
-            server.login(otp_sender_email, otp_sender_password)
-            server.sendmail(otp_sender_email, receiver_email, body)
-            # TODO: debug, maybe have ssl cert error
+        params: resend.Emails.SendParams = {
+            "from": "",
+            "to": [receiver_email],
+            "subject": bot_messages.OTP_EMAIL_SUBJECT,
+            "text": bot_messages.OTP_EMAIL_MESSAGE.format(totp.now()),
+        }
+        
+        email = resend.Emails.send(params)
 
         await state.set_state(VerificationBot.email_sent)
         await message.answer("Enter your OTP here (e.g. 689594), OTP is valid for 60 seconds")
@@ -66,7 +73,7 @@ class VerificationBot(StatesGroup):
     async def end_verification(message: Message, state: FSMContext):
         # TODO set user as verified in db
         database_functions.set_data(f"/users/{message.chat.id}/isVerified", True)
-        await message.answer("Email verified successfully. You can now book a slot.")
+        await message.answer("Email verified successfully. You can now book a slot with /book.")
         await state.clear()
         
         
