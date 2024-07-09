@@ -14,11 +14,7 @@ def end_week_sheet_automate():
     new_sheet_name = upcoming_week_start.strftime("%d %b") + " - " + upcoming_week_end.strftime("%d %b")
     
     # create new sheet
-    ScheduleBot.create_new_sheet(new_sheet_name)
-    
-    # update db: new_sheet = ""
-    database_functions.set_data("/sheets/new_sheet", new_sheet_name)
-    pass
+    ScheduleBot.create_sheet_new_week(new_sheet_name, upcoming_week_start)
 
 if __name__ == "__main__":
     end_week_sheet_automate()

@@ -94,8 +94,8 @@ class CancellationBot(StatesGroup):
             # call ScheduleBot to remove from sheet
             try:
                 print("in remove from schedule try block")
-                #new_state = await ScheduleBot.remove_from_schedule(message, state)
-                #state = new_state
+                new_state = await ScheduleBot.remove_from_schedule(message, state)
+                state = new_state
             except Exception as e:
                 logger.error(f"Removing From Schedule Error: {e}")
                 await state.clear()

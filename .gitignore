@@ -10,4 +10,5 @@ lib/
 # virtual env
 myenv/
 
+boookergym4.code-workspace
 .DS_Store

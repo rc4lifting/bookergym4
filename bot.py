@@ -16,6 +16,10 @@ from bots.BookingBot import BookingBot
 from bots.CancellationBot import CancellationBot
 from bots.FBSProcessBot import FBSProcessBot
 from bots.VerificationBot import VerificationBot
+from bots.ScheduleBot import ScheduleBot
+
+from datetime import datetime, timedelta
+import pytz
 
 # Logging configuration
 logging.basicConfig(level=logging.INFO)
@@ -102,6 +106,18 @@ async def schedule(message: Message, state: FSMContext) -> None:
 #         booking_duration='60'
 #     )
 #     await FBSProcessBot.start_web_booking(message, state)
+
+@dp.message(Command('autosheet'))
+async def autosheet(message: Message, state: FSMContext) -> None:
+    singapore_tz = pytz.timezone('Asia/Singapore')
+    now = datetime.now(singapore_tz)
+    days_left = (7 - now.weekday()) % 7
+    
+    # start and end of next sheet (mon - sun)
+    upcoming_week_start = (now + timedelta(days=days_left)).replace(hour=0, minute=0, second=0, microsecond=0)
+    upcoming_week_end = upcoming_week_start + timedelta(days=6)
+    new_sheet_name = upcoming_week_start.strftime("%d %b") + " - " + upcoming_week_end.strftime("%d %b")
+    await ScheduleBot.create_sheet_new_week(new_sheet_name, upcoming_week_start)
 
 # global error handling, for unexpected errors
 @dp.error()

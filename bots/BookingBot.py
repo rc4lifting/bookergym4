@@ -7,7 +7,6 @@ from config import bot, booking_router, logger, SlotTakenException, ExpectedElem
 import database_functions, utils, bot_messages
 
 from bots.FBSProcessBot import FBSProcessBot
-
 from bots.ScheduleBot import ScheduleBot
 from datetime import datetime, timedelta
 import pytz
@@ -309,8 +308,8 @@ class BookingBot(StatesGroup):
         # Call Schedule for booking on FBS
         if web_booking_success:
             try:
-                #new_state = await ScheduleBot.update_schedule(message, state)
-                #state = new_state
+                new_state = await ScheduleBot.update_schedule(message, state)
+                state = new_state
                 print("in scheduling try block")
             except Exception as e:
                 logger.error(f"Update Schedule Error: {e}")
