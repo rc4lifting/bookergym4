@@ -54,5 +54,6 @@ DEFAULT_CANCEL_REMARK = "Wrong Booking Timing"
 
 # OTP EMAIL
 OTP_EMAIL_SUBJECT = "OTP for RC4Lifting Official Gym Booking Telegram Bot"
-OTP_EMAIL_MESSAGE = "Hello! Your OTP for the RC4Lifting Official Gym Booking Telegram Bot is: {}\n" +\
-                    "If you did not request this OTP, please notify the exco immediately, we will investigate this case of misued email"
+OTP_EMAIL_MESSAGE = "Hello! \n\nYour OTP for the RC4Lifting Official Gym Booking Telegram Bot is:\n\n" +\
+                    "{}\n\n" +\
+                    "If you did not request for this OTP, please notify the exco immediately by '/exco' in the telegram bot\n"
