@@ -1,4 +1,3 @@
-import database_functions
 from bots.ScheduleBot import ScheduleBot
 from datetime import datetime, timedelta
 import pytz
