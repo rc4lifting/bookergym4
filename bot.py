@@ -88,6 +88,7 @@ async def exco(message: Message, state: FSMContext) -> None:
 async def schedule(message: Message, state: FSMContext) -> None:
     await message.answer(bot_messages.SCHEDULE_MESSAGE,parse_mode=ParseMode.HTML)
 
+## Test Commands to be deleted before production
 # # '/web' command: use for testing web automation, delete when all done 
 # @dp.message(Command('web'))
 # async def web(message: Message, state: FSMContext) -> None:
@@ -107,17 +108,22 @@ async def schedule(message: Message, state: FSMContext) -> None:
 #     )
 #     await FBSProcessBot.start_web_booking(message, state)
 
-@dp.message(Command('autosheet'))
-async def autosheet(message: Message, state: FSMContext) -> None:
-    singapore_tz = pytz.timezone('Asia/Singapore')
-    now = datetime.now(singapore_tz)
-    days_left = (7 - now.weekday()) % 7
+# @dp.message(Command('autosheet'))
+# async def autosheet(message: Message, state: FSMContext) -> None:
+#     singapore_tz = pytz.timezone('Asia/Singapore')
+#     now = datetime.now(singapore_tz)
+#     days_left = (7 - now.weekday()) % 7
     
-    # start and end of next sheet (mon - sun)
-    upcoming_week_start = (now + timedelta(days=days_left)).replace(hour=0, minute=0, second=0, microsecond=0)
-    upcoming_week_end = upcoming_week_start + timedelta(days=6)
-    new_sheet_name = upcoming_week_start.strftime("%d %b") + " - " + upcoming_week_end.strftime("%d %b")
-    await ScheduleBot.create_sheet_new_week(new_sheet_name, upcoming_week_start)
+#     # start and end of next sheet (mon - sun)
+#     upcoming_week_start = (now + timedelta(days=days_left)).replace(hour=0, minute=0, second=0, microsecond=0)
+#     upcoming_week_end = upcoming_week_start + timedelta(days=6)
+#     new_sheet_name = upcoming_week_start.strftime("%d %b") + " - " + upcoming_week_end.strftime("%d %b")
+    
+#     await ScheduleBot.create_sheet_new_week(new_sheet_name, upcoming_week_start)
+
+# @dp.message(Command('autoremovesheet'))
+# async def autoremovesheet(message: Message, state: FSMContext) -> None:
+#     await ScheduleBot.delete_sheet_old_week()
 
 # global error handling, for unexpected errors
 @dp.error()

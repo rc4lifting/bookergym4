@@ -156,23 +156,10 @@ class ScheduleBot(StatesGroup):
             raise e
          
         requests_list = []
-        date_string_list = [(week_start_dt + timedelta(days=i)).strftime('%-m/%-d/%Y') for i in range(7)]
+        date_string_list = [(week_start_dt + timedelta(days=i)).strftime('%-d/%-m/%Y') for i in range(7)]
         time_string_list = await ScheduleBot.generate_time_strings()
         
-        ## standard schedule template formatting
-        # TODO: set default text to Verdana 11
-        requests_list.append({
-            "updateSpreadsheetProperties": {
-                "properties": {
-                    "defaultFormat": {"textFormat": {
-                        "fontSize": 11,
-                        "fontFamily": "Verdana"
-                    }}
-                },
-                "fields": "*"
-            }
-        })
-        
+        ## standard schedule template formatting        
         # A:H resize to 200px
         requests_list.append({
             "updateDimensionProperties": {
@@ -423,7 +410,7 @@ class ScheduleBot(StatesGroup):
             database_functions.set_data("/sheets/new_sheet", sheet_info)
     
     async def delete_sheet_old_week():
-        sheet_id = database_functions.read_data_data("/sheets/current_sheet/sheet_id")
+        sheet_id = database_functions.read_data("/sheets/current_sheet/sheet_id")
         body = {"requests": [{"deleteSheet": {"sheetId": sheet_id}}]}
         request = ScheduleBot.spreadsheets.batchUpdate(
             spreadsheetId=schedule_gsheet_id,
@@ -437,5 +424,5 @@ class ScheduleBot(StatesGroup):
             raise e
         else:
             logger.info("Automated Script: deleted old sheet for the prev week!")
-            database_functions.update_data("/sheets/curr_sheet", database_functions.read_data("/sheets/new_sheet"))
+            database_functions.update_data("/sheets/current_sheet", database_functions.read_data("/sheets/new_sheet"))
             database_functions.delete_data("/sheets/new_sheet")
