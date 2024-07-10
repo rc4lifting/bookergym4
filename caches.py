@@ -58,7 +58,11 @@ schedule_credentials = {
   "universe_domain": "googleapis.com"
 }
 
+#UTownFBS Portal Login
 utownfbs_login = {
   "username": utownfbs_username,
   "password": utownfbs_password
 }
+
+# Email sending 
+resend_api_key = os.environ["RESEND_API_KEY"]
