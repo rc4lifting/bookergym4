@@ -58,10 +58,21 @@ class CancellationBot(StatesGroup):
         if utown_booking_id == None:
             logger.info("no utownfbs id found")
         else:
+            # update data in state
+            cancel_slot_date = database_functions.read_data(f"/slots/{slot_id}/date")
+            cancel_slot_start_time = database_functions.read_data(f"/slots/{slot_id}/startTime")
+            cancel_slot_duration = database_functions.read_data(f"/slots/{slot_id}/duration")
+                
+            formatted_date = utils.get_formatted_date_from_string(cancel_slot_date)
+            end_time_str = utils.cal_end_time(cancel_slot_start_time, cancel_slot_duration)
+            
+            booking_details_string = BOOKING_DATETIME_STRING.format(formatted_date, data['cancel_slot_start_time'], end_time_str)
+            
             await state.update_data({
-                "cancel_utownfbs_id": utown_booking_id
+                "cancel_utownfbs_id": utown_booking_id,
+                "booking_details_string": booking_details_string
             })
-
+            
             # call FBSProcessBot for cancellation
             try:
                 # TODO: implement cancel_slot
@@ -70,7 +81,7 @@ class CancellationBot(StatesGroup):
                 #state = new_state
             except ExpectedElementNotFound as e: 
                 logger.error(f"WEB CANCELLATION ExpectedElementNotFound: {e}")
-                await message.answer(f"An error has occurred when booking your slot:\n\n{booking_details_string}\n\nSend /exco to report the issue to us")
+                await message.answer(f"An error has occurred when cancelling your slot:\n\n{booking_details_string}\n\nSend /exco to report the issue to us")
                 await state.clear()
             except Exception as e:
                 logger.error(f"Cancellation Error: {e}")
@@ -79,18 +90,13 @@ class CancellationBot(StatesGroup):
             else: 
                 logger.info("WEB CANCELLATION SUCCESSFUL!")
                 web_cancel_success = True
-                
-                 # update data in state
-                await state.update_data({
-                    "cancel_slot_date": database_functions.read_data(f"/slots/{slot_id}/date"),
-                    "cancel_slot_start_time": database_functions.read_data(f"/slots/{slot_id}/startTime"),
-                    "cancel_slot_duration": database_functions.read_data(f"/slots/{slot_id}/duration"),
-                })
-
+            
                 # remove slot from db
                 database_functions.delete_data(f"/slots/{slot_id}")
         
         if web_cancel_success:
+            data = await state.get_data()
+            
             # call ScheduleBot to remove from sheet
             try:
                 print("in remove from schedule try block")
@@ -98,12 +104,12 @@ class CancellationBot(StatesGroup):
                 state = new_state
             except Exception as e:
                 logger.error(f"Removing From Schedule Error: {e}")
+                await message.answer(f"Your booking below has been cancelled\n\n{data['booking_details_string']}\n\n" + 
+                    "However, schedule has failed to remove your slot. Send /exco to report the issue to us")
                 await state.clear()
+            else:
+                
 
-            data = await state.get_data()
-            formatted_date = utils.get_formatted_date_from_string(data['cancel_slot_date'])
-            end_time_str = utils.cal_end_time(data['cancel_slot_start_time'], data['cancel_slot_duration'])
-
-            logger.info("ENITRE CANCELLATION SUCCESSFUL!")
-            await message.answer(f"The following booking has been successfully cancelled:\n\n{BOOKING_DATETIME_STRING.format(formatted_date, data['cancel_slot_start_time'], end_time_str)}")
-            await state.clear()
+                logger.info("ENITRE CANCELLATION SUCCESSFUL!")
+                await message.answer(f"The following booking has been successfully cancelled:\n\n{data['booking_details_string']}")
+                await state.clear()

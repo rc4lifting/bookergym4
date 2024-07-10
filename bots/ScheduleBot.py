@@ -17,9 +17,6 @@ from caches import schedule_gsheet_id, schedule_credentials
 
 class ScheduleBot(StatesGroup): 
     
-    sheet_format_body = {
-    }
-    
     # gsheet details 
     scopes = ['https://www.googleapis.com/auth/cloud-platform', 'https://www.googleapis.com/auth/spreadsheets']
     credentials = Credentials.from_service_account_info(schedule_credentials, scopes = scopes)
@@ -60,7 +57,7 @@ class ScheduleBot(StatesGroup):
         current_time = start_time
         
         while current_time <= end_time:
-            times.append(current_time.strftime('%I:%M %p'))
+            times.append(current_time.strftime('%-I:%M %p'))
             current_time += timedelta(minutes=30)
     
         return times
@@ -78,7 +75,7 @@ class ScheduleBot(StatesGroup):
         cells_to_fill = await ScheduleBot.booking_str_to_cells(booking_date, start_time, duration)
 
         # TODO: get the sheet name for the current week
-        sheet_name = database_functions.read_data("/sheets/current_sheet")
+        sheet_name = database_functions.read_data("/sheets/current_sheet/sheet_name")
 
         request_body = {
             "valueInputOption": "RAW",
@@ -108,7 +105,7 @@ class ScheduleBot(StatesGroup):
         cells_to_remove = await ScheduleBot.booking_str_to_cells(booking_date, start_time, duration)
         
         # TODO: get the sheet name for the current week
-        sheet_name = database_functions.read_data("/sheets/current_sheet")
+        sheet_name = database_functions.read_data("/sheets/current_sheet/sheet_name")
 
         request_body = {
             "ranges": [(sheet_name + "!" + cell) for cell in cells_to_remove]
@@ -339,6 +336,28 @@ class ScheduleBot(StatesGroup):
                     "endRowIndex": 4 + len(time_string_list),
                     "startColumnIndex": 0,
                     "endColumnIndex": 1,
+                }
+            }
+        })
+        
+        # change formatting of B4:H51
+        requests_list.append({
+            "repeatCell": {
+                "cell": {
+                    "userEnteredFormat": {
+                        "textFormat": {
+                            "fontSize": 11,
+                            "fontFamily": "Verdana"
+                        }
+                    }
+                },
+                "fields": "*",
+                "range": {
+                        "sheetId": new_sheet_id,
+                        "startRowIndex": 3,
+                        "endRowIndex": 51,
+                        "startColumnIndex": 1,
+                        "endColumnIndex": 8,
                 }
             }
         })
