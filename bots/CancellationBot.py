@@ -19,14 +19,11 @@ class CancellationBot(StatesGroup):
 
     async def start_cancellation(message: Message, state: FSMContext):
         logger.info("1: Cancellation started!")
-        await state.clear()
-
+        
         # get current time 
         singapore_tz = pytz.timezone('Asia/Singapore')
         curr_datetime = datetime.now(singapore_tz)
 
-        # query database on slots after the current time, in format of {"display string": "slot_id", ...}
-        # TODO: implement get_slots_after_time
         slots = database_functions.get_slots_after_time(curr_datetime, message.chat.id)
 
         # display slots to user
@@ -66,11 +63,14 @@ class CancellationBot(StatesGroup):
             formatted_date = utils.get_formatted_date_from_string(cancel_slot_date)
             end_time_str = utils.cal_end_time(cancel_slot_start_time, cancel_slot_duration)
             
-            booking_details_string = BOOKING_DATETIME_STRING.format(formatted_date, data['cancel_slot_start_time'], end_time_str)
+            booking_details_string = BOOKING_DATETIME_STRING.format(formatted_date, cancel_slot_start_time, end_time_str)
             
             await state.update_data({
                 "cancel_utownfbs_id": utown_booking_id,
-                "booking_details_string": booking_details_string
+                "booking_details_string": booking_details_string,
+                "cancel_slot_date": cancel_slot_date,
+                "cancel_slot_start_time": cancel_slot_start_time,
+                "cancel_slot_duration": cancel_slot_duration
             })
             
             # call FBSProcessBot for cancellation
@@ -95,8 +95,6 @@ class CancellationBot(StatesGroup):
                 database_functions.delete_data(f"/slots/{slot_id}")
         
         if web_cancel_success:
-            data = await state.get_data()
-            
             # call ScheduleBot to remove from sheet
             try:
                 print("in remove from schedule try block")
@@ -104,12 +102,12 @@ class CancellationBot(StatesGroup):
                 state = new_state
             except Exception as e:
                 logger.error(f"Removing From Schedule Error: {e}")
+                data = await state.get_data()
                 await message.answer(f"Your booking below has been cancelled\n\n{data['booking_details_string']}\n\n" + 
                     "However, schedule has failed to remove your slot. Send /exco to report the issue to us")
                 await state.clear()
             else:
-                
-
                 logger.info("ENITRE CANCELLATION SUCCESSFUL!")
+                data = await state.get_data()
                 await message.answer(f"The following booking has been successfully cancelled:\n\n{data['booking_details_string']}")
                 await state.clear()

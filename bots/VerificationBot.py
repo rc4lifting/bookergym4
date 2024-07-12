@@ -32,7 +32,7 @@ class VerificationBot(StatesGroup):
         
         await state.set_state(VerificationBot.email_confirmation)
         await message.answer(
-            f"My email address is: \n {receiver_email}\n\n Do you want to confirm this email address?", 
+            f"Your email address is: \n {receiver_email}\n\n Do you want to confirm this email address?", 
             reply_markup=utils.create_inline(confirm_options, row_width=2)
         )
     
@@ -78,7 +78,7 @@ class VerificationBot(StatesGroup):
             await state.clear()
         else:
             await state.set_state(VerificationBot.email_sent)
-            await message.answer("Enter your OTP here (e.g. 689594), OTP is valid for about 60 seconds\n\n Check your junk email folder too!")
+            await message.answer("Enter your OTP here (e.g. 689594)\n\n Check your junk email folder too!")
     
     @verification_router.message(email_sent)
     async def verify_email_otp(message: Message, state: FSMContext):
