@@ -6,13 +6,14 @@ START_MESSAGE = "Hello, <b>{}</b>! Looks like we have another gym goer right her
                 "• Each slot will be minimum 1h and maximum 1.5h\n\n" +\
                 "/help - for all commands\n" +\
                 "/book - book your gym slot now!\n"
+                
 
 HELP_MESSAGE = "What can this bot do?\n\n" +\
                "/book - book your gym slot now!\n" +\
                "/cancel - cancel slots to free them up for others :)\n\n" +\
                "/schedule - view available time slots here\n\n" +\
-               "/exco - contact the exco on any queries, feedback and damages\n"
-               #"/register - register your email before booking\n" +\
+               "/exco - contact the exco on any queries, feedback and damages\n" +\
+               "/register - register your email before booking\n"
                #"/verify - verify email for authentication\n" +\
                #"/delete - delete your account and data\n\n" +\
                #"/history - view your slots for the week\n\n" +\

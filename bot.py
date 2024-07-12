@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import sys
+import re
 from os import getenv
 
 from aiogram import types
@@ -41,6 +42,29 @@ async def command_start_handler(message: Message, state: FSMContext) -> None:
 async def help(message: Message) -> None:
     await message.answer(bot_messages.HELP_MESSAGE, parse_mode=ParseMode.HTML)
 
+# '/register' command
+@dp.message(Command('register'))
+async def register(message: Message, state: FSMContext) -> None:
+    logger.info("Received /register command")
+    await state.set_state(BookingBot.get_email)
+    await message.answer("Please enter your NUS email:\n (e.g. E1234567@u.nus.edu)")
+
+@dp.message(BookingBot.get_email)
+async def booker_email(message: Message, state: FSMContext):
+    email = message.text
+    if re.match(r"^[eE]\d{7}@u\.nus\.edu$", email):
+        logger.info("Valid NUS Email Received!")
+        await state.update_data(email=email)
+        
+        # Add email to the database
+        database_functions.set_data(f"/users/{message.from_user.id}/email", email)
+        
+        await state.set_state(BookingBot.get_booker_name)
+        await message.answer("What is your full name?\n (e.g. Jonan Yap)")
+    else:
+        logger.info("Invalid Email Received!")
+        await message.answer("Invalid email format. Please enter a valid NUS email:\n (e.g. E1234567@u.nus.edu)")
+
 # '/book' command 
 @dp.message(Command('book'))
 async def book(message: Message, state: FSMContext):
@@ -56,12 +80,12 @@ async def cancel(message: Message, state: FSMContext):
 # '/exco' command
 @dp.message(Command('exco'))
 async def exco(message: Message, state: FSMContext) -> None:
-    await message.answer(bot_messages.EXCO_MESSAGE,parse_mode=ParseMode.HTML)
+    await message.answer(bot_messages.EXCO_MESSAGE, parse_mode=ParseMode.HTML)
 
 # '/schedule' command
 @dp.message(Command('schedule'))
 async def schedule(message: Message, state: FSMContext) -> None:
-    await message.answer(bot_messages.SCHEDULE_MESSAGE,parse_mode=ParseMode.HTML)
+    await message.answer(bot_messages.SCHEDULE_MESSAGE, parse_mode=ParseMode.HTML)
 
 # '/web' command: use for testing web automation, delete when all done 
 @dp.message(Command('web'))
@@ -103,6 +127,8 @@ async def main() -> None:
 
 if __name__ == "__main__":
     asyncio.run(main())
+
+
 
 
 

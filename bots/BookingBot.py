@@ -3,8 +3,8 @@ from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
 from aiogram.enums import ParseMode
 
-from config import bot, booking_router, logger, SlotTakenException, ExpectedElementNotFound
-import database_functions, utils, bot_messages
+from config import bot, booking_router, logger, SlotTakenException, ExpectedElementNotFound, InvalidBookingTimeException
+import database_functions, utils, bot_messages, re, logging
 
 from bots.FBSProcessBot import FBSProcessBot
 
@@ -14,6 +14,7 @@ import pytz
 
 class BookingBot(StatesGroup):
     # states in booking form  
+    get_email = State()
     get_booker_name = State()
     get_room_number = State()
     check_room_number = State()
@@ -31,6 +32,7 @@ class BookingBot(StatesGroup):
 
     # TODO: checking of responses validity
 
+    
     ## form process
     async def start_booking(message: Message, state: FSMContext):
         logger.info("1: Booking started!")
@@ -88,8 +90,7 @@ class BookingBot(StatesGroup):
             logger.info("Invalid Buddy Room Number!")
             await message.answer("Room Number not valid, please re-enter your room number: (e.g. 14-12A)")
 
-    #T0D0: apply 1-8 days logic here
-
+    #T0D0: apply 1-8 days logic her
     @booking_router.message(get_buddy_telegram_handle)
     async def buddy_telegram_handle(message: Message, state: FSMContext):
         logger.info("8: Buddy Telehandle Received")
@@ -101,12 +102,11 @@ class BookingBot(StatesGroup):
         await state.update_data(buddy_telegram_handle=telehandle)
         await state.set_state(BookingBot.get_booking_date)
 
-
         # Singapore timezone
         singapore_tz = pytz.timezone('Asia/Singapore')
         now = datetime.now(singapore_tz)
 
-        # Calculate the end date of the booking period
+    # Sunday Noon: start booking for next week
         if now.weekday() == 6 and now.hour >= 12:
             next_sunday = now + timedelta(days=(13 - now.weekday()))
         else:
@@ -114,6 +114,11 @@ class BookingBot(StatesGroup):
 
         date_options = {}
         current_date = now
+
+        # Exclude current day if time is past 2300
+        if now.hour >= 23:
+            current_date += timedelta(days=1)
+
         while current_date <= next_sunday:
             date_str = current_date.strftime("%d/%m/%Y")
             display_str = current_date.strftime("%d %B %Y")
@@ -125,12 +130,31 @@ class BookingBot(StatesGroup):
     @booking_router.callback_query(get_booking_date)
     async def booking_date_callback(callback_query: CallbackQuery, state: FSMContext):
         logger.info("9: Received Booking Date")
-        await state.update_data(booking_date=callback_query.data)
-        await state.set_state(BookingBot.get_booking_time_range)
+        selected_date = callback_query.data
 
         # Singapore timezone
         singapore_tz = pytz.timezone('Asia/Singapore')
         now = datetime.now(singapore_tz)
+
+        # Check if the selected date is the current date and time is past 2300
+        if selected_date == now.strftime("%d/%m/%Y") and now.hour >= 23:
+            await callback_query.message.answer("Current day booking is not available after 2300. Please select another date.")
+            
+            # Recreate the date options excluding the current day
+            date_options = {}
+            current_date = now + timedelta(days=1)
+            next_sunday = now + timedelta(days=(6 - now.weekday() + 7))
+            while current_date <= next_sunday:
+                date_str = current_date.strftime("%d/%m/%Y")
+                display_str = current_date.strftime("%d %B %Y")
+                date_options[display_str] = date_str
+                current_date += timedelta(days=1)
+
+            await callback_query.message.answer("Please select the booking date:", reply_markup=utils.create_inline(date_options, row_width=2))
+            return
+
+        await state.update_data(booking_date=selected_date)
+        await state.set_state(BookingBot.get_booking_time_range)
 
         time_ranges = {
             "0000 - 0530": "0000-0530",
@@ -141,11 +165,15 @@ class BookingBot(StatesGroup):
 
         # Remove time ranges that are in the past for today
         current_time = now.strftime("%H%M")
-        selected_date = callback_query.data
         if selected_date == now.strftime("%d/%m/%Y"):
+            if now.hour >= 23:
+                await callback_query.message.answer("Current day booking is not available after 2300. Please select another date.")
+                return
+
+            # Allow only the 2330 slot after 2230
             for time_range in list(time_ranges.keys()):
                 end_time = time_ranges[time_range].split("-")[1]
-                if end_time <= current_time:
+                if end_time <= current_time or (now.hour == 22 and now.minute >= 30 and time_range != "1800 - 2330"):
                     del time_ranges[time_range]
 
         await callback_query.message.answer(
@@ -166,12 +194,17 @@ class BookingBot(StatesGroup):
         now = datetime.now(singapore_tz)
         selected_date = (await state.get_data())['booking_date']
 
+        # logic for first available time block
         if selected_date == now.strftime("%d/%m/%Y"):
             min_start_time_block = (now + timedelta(minutes=30)).replace(second=0, microsecond=0)
             if min_start_time_block.minute < 30:
                 min_start_time_block = min_start_time_block.replace(minute=30)
             else:
                 min_start_time_block = (min_start_time_block + timedelta(minutes=30)).replace(minute=0)
+            
+            # Allow only the 2330 slot after 2230
+            if now.hour == 22 and now.minute >= 30:
+                min_start_time_block = min_start_time_block.replace(hour=23, minute=30)
         else:
             min_start_time_block = datetime.strptime(range_extremes[0], "%H%M")
 
@@ -205,8 +238,8 @@ class BookingBot(StatesGroup):
             data['buddy_name'], data['buddy_telegram_handle'], data['buddy_room_number']
         )
 
-        # setting default booking duration
-        if data['booking_duration'] != "60" or data['booking_duration'] != "90":
+        # setting default booking duration based on user selection
+        if data['booking_duration'] not in ["60", "90"]:
             data['booking_duration'] = "90"
 
         end_time_string = utils.cal_end_time(data['booking_start_time'], data['booking_duration'])
@@ -251,6 +284,10 @@ class BookingBot(StatesGroup):
         #database_functions.set_data(f"/users/{message.chat.id}/name", data.get('booker_name', ''))
         #database_functions.set_data(f"/users/{message.chat.id}/roomNumber", data.get('booker_room_number', ''))
 
+        singapore_tz = pytz.timezone('Asia/Singapore')
+        slot_dt = singapore_tz.localize(datetime.strptime(data.get('booking_date') + " " + data['booking_start_time'], "%d/%m/%Y %H%M"))
+        slot_timestamp = slot_dt.astimezone(pytz.utc).timestamp()
+
         # updating booking details
         booking_details = {
             "bookedUserId": message.chat.id,
@@ -262,7 +299,8 @@ class BookingBot(StatesGroup):
             },
             "date": data.get('booking_date', ''),
             "startTime": data.get('booking_start_time', ''),
-            "duration": int(data.get('booking_duration', 90))
+            "duration": int(data.get('booking_duration', 90)),
+            "timestamp": slot_timestamp
         }
 
         end_time_string = utils.cal_end_time(booking_details['startTime'], booking_details['duration'])
@@ -273,9 +311,9 @@ class BookingBot(StatesGroup):
 
         # Call FBSProcessBot for booking on FBS
         try: 
-            new_state = await FBSProcessBot.start_web_booking(message, state)
-            state = new_state
-            #print("in web booking try block")
+            #new_state = await FBSProcessBot.start_web_booking(message, state)
+            #state = new_state
+            print("in web booking try block")
         except SlotTakenException as e: 
             logger.error(f"WEB BOOKING SlotTakenException: {e}")
             await message.answer(f"{e}\n\n{booking_details_string}\n\nSend /book to book another slot")
@@ -283,6 +321,10 @@ class BookingBot(StatesGroup):
         except ExpectedElementNotFound as e: 
             logger.error(f"WEB BOOKING ExpectedElementNotFound: {e}")
             await message.answer(f"An error has occurred when booking your slot:\n\n{booking_details_string}\n\nSend /exco to report the issue to us")
+            await state.clear()
+        except InvalidBookingTimeException as e:
+            logger.error(f"WEB BOOKING InvalidBookingTimeException: {e}")
+            await message.answer(f"Invalid Booking Time Chosen\n\n{booking_details_string}\n\nSend /book to book a new slot with a new booking time")
             await state.clear()
         except Exception as e:
             logger.error(f"WEB BOOKING ERROR: {e}")
@@ -293,14 +335,14 @@ class BookingBot(StatesGroup):
             web_booking_success = True
 
             data = await state.get_data()
-            #booking_details["utownfbsBookingId"] = data.get('utownfbsBookingId')
-            #database_functions.create_data(f"/slots", booking_details, True)
+            booking_details["utownfbsBookingId"] = "test123455555" #data.get('utownfbsBookingId')
+            database_functions.create_data(f"/slots", booking_details, True)
             
         # Call Schedule for booking on FBS
         if web_booking_success:
             try:
-                #new_state = await ScheduleBot.update_schedule(message, state)
-                #state = new_state
+                new_state = await ScheduleBot.update_schedule(message, state)
+                state = new_state
                 print("in scheduling try block")
             except Exception as e:
                 logger.error(f"Update Schedule Error: {e}")
@@ -311,3 +353,8 @@ class BookingBot(StatesGroup):
                 logger.info("ENITRE BOOKING SUCCESSFUL!")
                 await message.answer(f"Your booking has been successfully processed!\n\nHere are your slot details\n{booking_details_string}\n\nSend /schedule to view the updated schedule")
                 await state.clear()
+
+
+
+
+
