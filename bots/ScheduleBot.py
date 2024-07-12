@@ -125,6 +125,8 @@ class ScheduleBot(StatesGroup):
         return state
     
     async def create_sheet_new_week(sheet_name: str, week_start_dt: datetime):
+        logger.info("Automated Script: creating new sheet for the week!")
+        
         ## create new sheet
         # freeze pane, up to row 3 column A
         new_sheet_id = int(week_start_dt.strftime('%Y%m%d'))
@@ -145,12 +147,14 @@ class ScheduleBot(StatesGroup):
         }
         
         try:
+            logger.info("creating the sheet in gsheet!")
             ScheduleBot.spreadsheets.batchUpdate(
                 spreadsheetId=schedule_gsheet_id,
                 body=create_body
             ).execute()
         except Exception as e:
-            raise e
+            logger.error("Automated Script (create_sheet_new_week): failed to create new sheet for the week!")
+            
          
         requests_list = []
         date_string_list = [(week_start_dt + timedelta(days=i)).strftime('%-d/%-m/%Y') for i in range(7)]
@@ -416,10 +420,10 @@ class ScheduleBot(StatesGroup):
         )
         
         try:
+            logger.info("Automated Script: updating the sheet in gsheet with template!")
             response = request.execute()
         except Exception as e:
             logger.error("Automated Script (create_sheet_new_week): failed to create new sheet for the week!")
-            raise e
         else:
             logger.info("Automated Script: created new sheet for the week!")
             sheet_info = {
@@ -437,10 +441,10 @@ class ScheduleBot(StatesGroup):
         )
         
         try:
+            logger.info("Automated Script: deleting old sheet")
             response = request.execute()
         except Exception as e:
             logger.error("Automated Script (delete_sheet_old_week): failed to delete old sheet for the last week!")
-            raise e
         else:
             logger.info("Automated Script: deleted old sheet for the prev week!")
             database_functions.update_data("/sheets/current_sheet", database_functions.read_data("/sheets/new_sheet"))

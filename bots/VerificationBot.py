@@ -16,10 +16,12 @@ class VerificationBot(StatesGroup):
     email_verified = State()
     
     async def start_verify(message: Message, state: FSMContext):
-        # TODO check if email exist in db
+        logger.info("1: Verification started!")
         receiver_email = database_functions.read_data(f"/users/{message.chat.id}/email")
         
         if receiver_email is None:
+            logger.error("verification - no valid email in database")
+            await bot.send_message(message.chat.id, "No valid email given, please register with /register.")
             await state.clear()
         
         await state.update_data(email=receiver_email)
@@ -38,9 +40,11 @@ class VerificationBot(StatesGroup):
     
     @verification_router.callback_query(email_confirmation)
     async def confirm_email(callback_query: CallbackQuery, state: FSMContext):
+        logger.info("2: Confirming Email!")
         message = callback_query.message
         
         if callback_query.data != "CONFIRM":
+            logger.error("verification - invalid/ CANCEL option received!")
             await bot.send_message(message.chat.id, "Email verification cancelled, please re-register with new details at /register.")
             await state.clear()
         
@@ -50,6 +54,7 @@ class VerificationBot(StatesGroup):
     
     @verification_router.message(start_auth)
     async def send_email(message: Message, state: FSMContext):
+        logger.info("3: preparing otp email")
         # prep email contents and connection
         data = await state.get_data()
         receiver_email = data['email']
@@ -71,12 +76,14 @@ class VerificationBot(StatesGroup):
         }
         
         try:
+            logger.info("4: sending otp email")
             email = resend.Emails.send(params)
         except Exception as e:
             logger.error(f"Error sending email: {e}")
             await message.answer("Error sending email. Please try again later.")
             await state.clear()
         else:
+            logger.info("VERIFICATION EMAIL SENT")
             await state.set_state(VerificationBot.email_sent)
             await message.answer("Enter your OTP here (e.g. 689594)\n\n Check your junk email folder too!")
     
@@ -89,13 +96,16 @@ class VerificationBot(StatesGroup):
         if totp.verify(otp=user_entered_otp):
             await state.set_state(VerificationBot.email_sent)
             await VerificationBot.end_verification(message, state)
+            logger.info("EMAIL VERIFIED")
         else:
+            logger.info("INVALID OTP by user")
             await message.answer("Invalid OTP. Please try again using /verify.")
             await state.clear()
         
     @verification_router.message(email_verified)
     async def end_verification(message: Message, state: FSMContext):
         database_functions.set_data(f"/users/{message.chat.id}/isVerified", True)
+        logger.info("USER IS VERIFIED")
         await message.answer("Email verified successfully. You can now book a slot with /book.")
         await state.clear()
         

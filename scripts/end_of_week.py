@@ -1,4 +1,11 @@
+import os 
+import sys
+
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.insert(0, project_root)
+
 from bots.ScheduleBot import ScheduleBot
+from config import logger
 from datetime import datetime, timedelta
 import pytz
 
@@ -16,4 +23,6 @@ def end_week_sheet_automate():
     ScheduleBot.create_sheet_new_week(new_sheet_name, upcoming_week_start)
 
 if __name__ == "__main__":
+    logger.info("END WEEK AUTOMATION - start")
     end_week_sheet_automate()
+    logger.info("END WEEK AUTOMATION - end")
