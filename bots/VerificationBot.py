@@ -17,12 +17,19 @@ class VerificationBot(StatesGroup):
     
     async def start_verify(message: Message, state: FSMContext):
         logger.info("1: Verification started!")
+        if database_functions.user_is_verified(message.chat.id):
+            logger.error("verification - user already verified")
+            await bot.send_message(message.chat.id, "You are already verified :)")
+            await state.clear()
+            return
+        
         receiver_email = database_functions.read_data(f"/users/{message.chat.id}/email")
         
         if receiver_email is None:
             logger.error("verification - no valid email in database")
             await bot.send_message(message.chat.id, "No valid email given, please register with /register.")
             await state.clear()
+            return
         
         await state.update_data(email=receiver_email)
         
@@ -47,10 +54,10 @@ class VerificationBot(StatesGroup):
             logger.error("verification - invalid/ CANCEL option received!")
             await bot.send_message(message.chat.id, "Email verification cancelled, please re-register with new details at /register.")
             await state.clear()
-        
-        await state.set_state(VerificationBot.start_auth)
-        await bot.send_message(message.chat.id, "Sending a OTP to your email address. Please enter the OTP here when prompted. OTP is valid for 60 seconds")
-        await VerificationBot.send_email(message, state)
+        else: 
+            await state.set_state(VerificationBot.start_auth)
+            await bot.send_message(message.chat.id, "Sending a OTP to your email address. Please enter the OTP here when prompted. OTP is valid for 60 seconds")
+            await VerificationBot.send_email(message, state)
     
     @verification_router.message(start_auth)
     async def send_email(message: Message, state: FSMContext):
