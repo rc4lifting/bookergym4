@@ -18,7 +18,7 @@ class VerificationBot(StatesGroup):
     async def start_verify(message: Message, state: FSMContext):
         logger.info("1: Verification started!")
         if database_functions.user_is_verified(message.chat.id):
-            logger.error("verification - user already verified")
+            logger.info("verification - user already verified")
             await bot.send_message(message.chat.id, "You are already verified :)")
             await state.clear()
             return
