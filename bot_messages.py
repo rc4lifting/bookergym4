@@ -8,6 +8,7 @@ START_MESSAGE = "Hello, <b>{}</b>! Looks like we have another gym goer right her
                 "/register - register your email before booking\n" +\
                 "/verify - verify email for authentication\n\n" +\
                 "/book - book your gym slot now!\n"
+                
 
 HELP_MESSAGE = "What can this bot do?\n\n" +\
                 "/register - register your email before booking\n" +\
@@ -16,8 +17,7 @@ HELP_MESSAGE = "What can this bot do?\n\n" +\
                "/cancel - cancel slots to free them up for others :)\n\n" +\
                "/schedule - view available time slots here\n\n" +\
                "/exco - contact the exco on any queries, feedback and damages\n"
-               #"/delete - delete your account and data\n\n" +\
-               #"/history - view your slots for the week\n\n" +\
+               #"/delete - delete your account and data\n\n" 
 
 EXCO_MESSAGE = "Contact us! we are happy to help!\n" +\
                "Benjamin - @benjaminseowww\n" +\
