@@ -27,9 +27,6 @@ class BookingBot(StatesGroup):
     confirm_booking_details = State()
     confirm_declaration = State()
     end_of_booking = State()
-
-    # TODO: checking of responses validity
-
     
     ## form process
     async def start_booking(message: Message, state: FSMContext):
@@ -112,8 +109,8 @@ class BookingBot(StatesGroup):
         date_options = {}
         current_date = now
 
-        # Exclude current day if time is past 2300
-        if now.hour >= 23:
+        # Exclude current day if time is past 2245
+        if now.hour >= 23 or (now.hour == 22 and now.minute >= 45):
             current_date += timedelta(days=1)
 
         while current_date <= next_sunday:
@@ -134,21 +131,21 @@ class BookingBot(StatesGroup):
         now = datetime.now(singapore_tz)
 
         # Check if the selected date is the current date and time is past 2300
-        if selected_date == now.strftime("%d/%m/%Y") and now.hour >= 23:
-            await callback_query.message.answer("Current day booking is not available after 2300. Please select another date.")
+        # if selected_date == now.strftime("%d/%m/%Y") and now.hour >= 23:
+        #     await callback_query.message.answer("Current day booking is not available after 2300. Please select another date.")
             
-            # Recreate the date options excluding the current day
-            date_options = {}
-            current_date = now + timedelta(days=1)
-            next_sunday = now + timedelta(days=(6 - now.weekday() + 7))
-            while current_date <= next_sunday:
-                date_str = current_date.strftime("%d/%m/%Y")
-                display_str = current_date.strftime("%d %B %Y")
-                date_options[display_str] = date_str
-                current_date += timedelta(days=1)
+        #     # Recreate the date options excluding the current day
+        #     date_options = {}
+        #     current_date = now + timedelta(days=1)
+        #     next_sunday = now + timedelta(days=(6 - now.weekday() + 7))
+        #     while current_date <= next_sunday:
+        #         date_str = current_date.strftime("%d/%m/%Y")
+        #         display_str = current_date.strftime("%d %B %Y")
+        #         date_options[display_str] = date_str
+        #         current_date += timedelta(days=1)
 
-            await callback_query.message.answer("Please select the booking date:", reply_markup=utils.create_inline(date_options, row_width=2))
-            return
+        #     await callback_query.message.answer("Please select the booking date:", reply_markup=utils.create_inline(date_options, row_width=2))
+        #     return
 
         await state.update_data(booking_date=selected_date)
         await state.set_state(BookingBot.get_booking_time_range)
@@ -161,17 +158,21 @@ class BookingBot(StatesGroup):
         }
 
         # Remove time ranges that are in the past for today
-        current_time = now.strftime("%H%M")
+        current_time = now
         if selected_date == now.strftime("%d/%m/%Y"):
-            if now.hour >= 23:
-                await callback_query.message.answer("Current day booking is not available after 2300. Please select another date.")
-                return
+            # if now.hour >= 23:
+            #     await callback_query.message.answer("Current day booking is not available after 2300. Please select another date.")
+            #     return
 
-            # Allow only the 2330 slot after 2230
-            for time_range in list(time_ranges.keys()):
-                end_time = time_ranges[time_range].split("-")[1]
-                if end_time <= current_time or (now.hour == 22 and now.minute >= 30 and time_range != "1800 - 2330"):
-                    del time_ranges[time_range]
+            # removing time ranges where the current time is less than 45 minutes before the end of that time range 
+            for key in list(time_ranges.keys()):
+                end_time_string = time_ranges[key].split("-")[1]
+                hour = int(end_time_string[:2])
+                minute = int(end_time_string[2:])
+                end_time = current_time.replace(hour=hour, minute=minute, second=0, microsecond=0)
+                
+                if current_time + timedelta(minutes=45) > end_time:
+                    del time_ranges[key]
 
         await callback_query.message.answer(
             "Please select the time range of your booking start time:",
@@ -356,8 +357,3 @@ class BookingBot(StatesGroup):
                 logger.info("ENITRE BOOKING SUCCESSFUL!")
                 await message.answer(f"Your booking has been successfully processed!\n\nHere are your slot details\n{booking_details_string}\n\nSend /schedule to view the updated schedule")
                 await state.clear()
-
-
-
-
-
