@@ -13,7 +13,6 @@ import pytz
 
 class BookingBot(StatesGroup):
     # states in booking form  
-    get_email = State()
     get_booker_name = State()
     get_room_number = State()
     check_room_number = State()
@@ -89,7 +88,6 @@ class BookingBot(StatesGroup):
             logger.info("Invalid Buddy Room Number!")
             await message.answer("Room Number not valid, please re-enter your room number: (e.g. 14-12A)")
 
-    #T0D0: apply 1-8 days logic her
     @booking_router.message(get_buddy_telegram_handle)
     async def buddy_telegram_handle(message: Message, state: FSMContext):
         logger.info("8: Buddy Telehandle Received")

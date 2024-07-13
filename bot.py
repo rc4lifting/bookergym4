@@ -16,33 +16,17 @@ from config import dp, bot, booking_router, logger
 from bots.BookingBot import BookingBot
 from bots.CancellationBot import CancellationBot
 from bots.FBSProcessBot import FBSProcessBot
-from bots.VerificationBot import VerificationBot
+from bots.OnboardingBot import OnboardingBot
 from bots.ScheduleBot import ScheduleBot
 
 from datetime import datetime, timedelta
 import pytz
 
-# Logging configuration
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
 # '/start' command 
 @dp.message(CommandStart())
 async def command_start_handler(message: Message, state: FSMContext) -> None:
     logger.info("Received /start command")
-    user = message.from_user
-    telehandle = user.username
-
-    # TODO: to move adding user to db in /register command
-    path = f"/users/{message.chat.id}"
-    if not database_functions.user_exists(message.chat.id):
-        data = {
-            "telehandle": f"{telehandle}",
-            "isVerified": False
-        }
-        database_functions.create_data(path, data)
-        
-    await message.answer(bot_messages.START_MESSAGE.format(user.first_name), parse_mode=ParseMode.HTML)
+    await message.answer(bot_messages.START_MESSAGE.format(message.from_user.first_name), parse_mode=ParseMode.HTML)
 
 # '/help' command
 @dp.message(Command('help'))
@@ -53,24 +37,12 @@ async def help(message: Message, state: FSMContext) -> None:
 @dp.message(Command('register'))
 async def register(message: Message, state: FSMContext) -> None:
     logger.info("Received /register command")
-    await state.set_state(BookingBot.get_email)
-    await message.answer("Please enter your NUS email:\n (e.g. E1234567@u.nus.edu)")
-
-@dp.message(BookingBot.get_email)
-async def booker_email(message: Message, state: FSMContext):
-    email = message.text
-    if re.match(r"^[eE]\d{7}@u\.nus\.edu$", email):
-        logger.info("Valid NUS Email Received!")
-        await state.update_data(email=email)
-        
-        # Add email to the database
-        database_functions.set_data(f"/users/{message.from_user.id}/email", email)
-        
-        await state.set_state(BookingBot.get_booker_name)
-        await message.answer("What is your full name?\n (e.g. Jonan Yap)")
-    else:
-        logger.info("Invalid Email Received!")
-        await message.answer("Invalid email format. Please enter a valid NUS email:\n (e.g. E1234567@u.nus.edu)")
+    await OnboardingBot.start_register(message, state)
+    
+# '/verify' command
+@dp.message(Command('verify'))
+async def verify(message: Message, state: FSMContext) -> None:
+    await OnboardingBot.start_verify(message, state)
 
 # '/book' command 
 @dp.message(Command('book'))
