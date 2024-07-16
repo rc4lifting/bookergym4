@@ -8,6 +8,7 @@ START_MESSAGE = "Hello, <b>{}</b>! Looks like we have another gym goer right her
                 "/register - register your email before booking\n" +\
                 "/verify - verify email for authentication\n\n" +\
                 "/book - book your gym slot now!\n"
+                
 
 HELP_MESSAGE = "What can this bot do?\n\n" +\
                 "/register - register your email before booking\n" +\
@@ -16,8 +17,7 @@ HELP_MESSAGE = "What can this bot do?\n\n" +\
                "/cancel - cancel slots to free them up for others :)\n\n" +\
                "/schedule - view available time slots here\n\n" +\
                "/exco - contact the exco on any queries, feedback and damages\n"
-               #"/delete - delete your account and data\n\n" +\
-               #"/history - view your slots for the week\n\n" +\
+               #"/delete - delete your account and data\n\n" 
 
 EXCO_MESSAGE = "Contact us! we are happy to help!\n" +\
                "Benjamin - @benjaminseowww\n" +\
@@ -33,6 +33,28 @@ SCHEDULE_MESSAGE = "Here are the available slots for the week:\n" +\
 NOT_REGISTERED_MESSAGE = "You are not registered yet! Please register using /register and verify using /verify before booking"
 
 NOT_VERIFIED_MESSAGE = "You are not verified yet! Please verify your email using /verify before booking"
+
+# REGISTRATION
+PDPA_PRECLAUSE_MESSAGE = "We will be collecting your <b>NUSNET ID</b> and <b>NUS Email</b>\n" +\
+                         "Read the PDPA clause below and select 'I consent' to continue"
+PDPA_CLAUSE_MESSAGE = "<b>Personal Data Protection Act (PDPA) Clause</b>\n\n" +\
+                      "Please take note of the following:\n\n" +\
+                      "(i) The data collected in this bot will only be used for RC4 gym bookings\n" +\
+                      "(ii) The collected data will only be used for administrative and financial-related purposes by the College and/or University, where required.\n" +\
+                      "(iii) The organising committee will retain the collected data only until the end of the AY.\n\n" +\
+                      "Should you have any questions regarding this bot, please contact the exco with /exco.\n" +\
+                      "Should you have any questions/clarifications, please contact Aditya Jayaraj, General Secretary of the RC4 10th CSC, via email at aditya.j@u.nus.edu.\n\n" +\
+                      "Should you have any concerns regarding this, please write to the College Master or either of the contacts provided below:\n" +\
+                      "(i) Dr. Naviyn, Director of Student Life, RC4 (Email: rc4npb@nus.edu.sg)\n" +\
+                      "(ii) You Cheng, Assistant Senior Manager, RC4 (Email: rc4tyc@nus.edu.sg)"
+                      
+PDPA_QUESTION_MESSAGE = "I consent to providing my personal data for the aforementioned purpose." +\
+                        "I also agree to receive important updates pertaining to matters contained in this survey." +\
+                        "All personal information will be kept confidential and used only for the aforementioned purpose." +\
+                        "I understand that should I wish to withdraw my consent for the organising committee to contact me for the purposes stated above," +\
+                        "I can notify Aditya Jayaraj, Residential College 4, College Students' Committee General Secretary, in writing to aditya.j@u.nus.edu." +\
+                        "The organising committee will then remove my personal information from their database," +\
+                        "and I allow 7 business days for my withdrawal of consent to take effect."
 
 # FORM 
 FORM_DECLARATION = "• I understand it is my personal responsibility to be in good physical health to carry out the sessions " +\

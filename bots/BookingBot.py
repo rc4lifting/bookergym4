@@ -27,9 +27,7 @@ class BookingBot(StatesGroup):
     confirm_booking_details = State()
     confirm_declaration = State()
     end_of_booking = State()
-
-    # TODO: checking of responses validity
-
+    
     ## form process
     async def start_booking(message: Message, state: FSMContext):
         logger.info("1: Booking started!")
@@ -87,7 +85,6 @@ class BookingBot(StatesGroup):
             logger.info("Invalid Buddy Room Number!")
             await message.answer("Room Number not valid, please re-enter your room number: (e.g. 14-12A)")
 
-    #T0D0: apply 1-8 days logic here
     @booking_router.message(get_buddy_telegram_handle)
     async def buddy_telegram_handle(message: Message, state: FSMContext):
         logger.info("8: Buddy Telehandle Received")
@@ -111,6 +108,11 @@ class BookingBot(StatesGroup):
 
         date_options = {}
         current_date = now
+
+        # Exclude current day if time is past 2245
+        if now.hour >= 23 or (now.hour == 22 and now.minute >= 45):
+            current_date += timedelta(days=1)
+
         while current_date <= next_sunday:
             date_str = current_date.strftime("%d/%m/%Y")
             display_str = current_date.strftime("%d %B %Y")
@@ -122,12 +124,31 @@ class BookingBot(StatesGroup):
     @booking_router.callback_query(get_booking_date)
     async def booking_date_callback(callback_query: CallbackQuery, state: FSMContext):
         logger.info("9: Received Booking Date")
-        await state.update_data(booking_date=callback_query.data)
-        await state.set_state(BookingBot.get_booking_time_range)
+        selected_date = callback_query.data
 
         # Singapore timezone
         singapore_tz = pytz.timezone('Asia/Singapore')
         now = datetime.now(singapore_tz)
+
+        # Check if the selected date is the current date and time is past 2300
+        # if selected_date == now.strftime("%d/%m/%Y") and now.hour >= 23:
+        #     await callback_query.message.answer("Current day booking is not available after 2300. Please select another date.")
+            
+        #     # Recreate the date options excluding the current day
+        #     date_options = {}
+        #     current_date = now + timedelta(days=1)
+        #     next_sunday = now + timedelta(days=(6 - now.weekday() + 7))
+        #     while current_date <= next_sunday:
+        #         date_str = current_date.strftime("%d/%m/%Y")
+        #         display_str = current_date.strftime("%d %B %Y")
+        #         date_options[display_str] = date_str
+        #         current_date += timedelta(days=1)
+
+        #     await callback_query.message.answer("Please select the booking date:", reply_markup=utils.create_inline(date_options, row_width=2))
+        #     return
+
+        await state.update_data(booking_date=selected_date)
+        await state.set_state(BookingBot.get_booking_time_range)
 
         time_ranges = {
             "0000 - 0530": "0000-0530",
@@ -137,13 +158,21 @@ class BookingBot(StatesGroup):
         }
 
         # Remove time ranges that are in the past for today
-        current_time = now.strftime("%H%M")
-        selected_date = callback_query.data
+        current_time = now
         if selected_date == now.strftime("%d/%m/%Y"):
-            for time_range in list(time_ranges.keys()):
-                end_time = time_ranges[time_range].split("-")[1]
-                if end_time <= current_time:
-                    del time_ranges[time_range]
+            # if now.hour >= 23:
+            #     await callback_query.message.answer("Current day booking is not available after 2300. Please select another date.")
+            #     return
+
+            # removing time ranges where the current time is less than 45 minutes before the end of that time range 
+            for key in list(time_ranges.keys()):
+                end_time_string = time_ranges[key].split("-")[1]
+                hour = int(end_time_string[:2])
+                minute = int(end_time_string[2:])
+                end_time = current_time.replace(hour=hour, minute=minute, second=0, microsecond=0)
+                
+                if current_time + timedelta(minutes=45) > end_time:
+                    del time_ranges[key]
 
         await callback_query.message.answer(
             "Please select the time range of your booking start time:",
@@ -164,13 +193,17 @@ class BookingBot(StatesGroup):
         data = await state.get_data()
         selected_date = data['booking_date']
 
-        # logic for first avaliable time block
+        # logic for first available time block
         if selected_date == now.strftime("%d/%m/%Y"):
             min_start_time_block = (now + timedelta(minutes=45)).replace(second=0, microsecond=0)
             if min_start_time_block.minute < 30:
                 min_start_time_block = min_start_time_block.replace(minute=30)
             else:
                 min_start_time_block = (min_start_time_block + timedelta(minutes=30)).replace(minute=0)
+            
+            # Allow only the 2330 slot after 2230
+            if now.hour == 22 and now.minute >= 30:
+                min_start_time_block = min_start_time_block.replace(hour=23, minute=30)
         else:
             min_start_time_block = datetime.strptime(range_extremes[0], "%H%M")
 
@@ -206,7 +239,7 @@ class BookingBot(StatesGroup):
             data['buddy_name'], data['buddy_telegram_handle'], data['buddy_room_number']
         )
 
-        # setting default booking duration
+        # setting default booking duration based on user selection
         if data['booking_duration'] not in ["60", "90"]:
             data['booking_duration'] = "90"
 
@@ -251,6 +284,10 @@ class BookingBot(StatesGroup):
         # Storing name and room number into db logic: if inside, replace it, if not add it 
         #database_functions.set_data(f"/users/{message.chat.id}/name", data.get('booker_name', ''))
         #database_functions.set_data(f"/users/{message.chat.id}/roomNumber", data.get('booker_room_number', ''))
+        singapore_tz = pytz.timezone('Asia/Singapore')
+        slot_dt = singapore_tz.localize(datetime.strptime(data.get('booking_date') + " " + data['booking_start_time'], "%d/%m/%Y %H%M"))
+        slot_timestamp = slot_dt.astimezone(pytz.utc).timestamp()
+
         singapore_tz = pytz.timezone('Asia/Singapore')
         slot_dt = singapore_tz.localize(datetime.strptime(data.get('booking_date') + " " + data['booking_start_time'], "%d/%m/%Y %H%M"))
         slot_timestamp = slot_dt.astimezone(pytz.utc).timestamp()

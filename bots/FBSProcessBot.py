@@ -1,19 +1,15 @@
 import asyncio
-import logging
-import sys
 from os import getenv
 
 from datetime import datetime, timedelta
 import pytz
-import re
 
 from aiogram.fsm.state import StatesGroup, State
-from aiogram.types import Message, CallbackQuery
+from aiogram.types import Message
 from aiogram.fsm.context import FSMContext
 
-import caches, config, database_functions, utils
 from caches import utownfbs_login
-from config import dp, bot, booking_router, logger, SlotTakenException, ExpectedElementNotFound, InvalidBookingTimeException
+from config import booking_router, logger, SlotTakenException, ExpectedElementNotFound, InvalidBookingTimeException
 from bot_messages import DEFAULT_CANCEL_REMARK
 
 from playwright.async_api import async_playwright, expect

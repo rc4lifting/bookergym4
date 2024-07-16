@@ -1,5 +1,6 @@
 import os 
 import sys
+import asyncio
 
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, project_root)
@@ -9,7 +10,7 @@ from config import logger
 from datetime import datetime, timedelta
 import pytz
 
-def end_week_sheet_automate():
+async def end_week_sheet_automate():
     singapore_tz = pytz.timezone('Asia/Singapore')
     now = datetime.now(singapore_tz)
     days_left = (7 - now.weekday()) % 7
@@ -20,9 +21,9 @@ def end_week_sheet_automate():
     new_sheet_name = upcoming_week_start.strftime("%d %b") + " - " + upcoming_week_end.strftime("%d %b")
     
     # create new sheet
-    ScheduleBot.create_sheet_new_week(new_sheet_name, upcoming_week_start)
+    await ScheduleBot.create_sheet_new_week(new_sheet_name, upcoming_week_start)
 
 if __name__ == "__main__":
     logger.info("END WEEK AUTOMATION - start")
-    end_week_sheet_automate()
+    asyncio.run(end_week_sheet_automate())
     logger.info("END WEEK AUTOMATION - end")
