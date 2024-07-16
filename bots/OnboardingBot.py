@@ -2,7 +2,6 @@ from aiogram.fsm.state import StatesGroup, State
 from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
 from aiogram.enums import ParseMode
-from aiogram.methods.get_chat import GetChat
 
 import pyotp
 import resend
@@ -27,8 +26,7 @@ class OnboardingBot(StatesGroup):
         logger.info("1: Registration started!")
         
         # TODO: to move adding user to db in /register command
-        path = f"/users/{message.chat.id}"
-        if database_functions.user_exists(message.chat.id):
+        if database_functions.user_is_registered(message.chat.id):
             await message.answer("You have already registered! Please verify your email using /verify.")
             await state.clear()
             return
@@ -47,7 +45,6 @@ class OnboardingBot(StatesGroup):
             await bot.send_message(message.chat.id, "Please consent to the PDPA clause to continue. Read the clause and select 'I consent' to continue.")
             return
         
-        user = message.from_user
         telehandle = callback_query.from_user.username
         data = {
             "telehandle": f"{telehandle}",

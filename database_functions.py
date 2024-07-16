@@ -55,6 +55,12 @@ def user_exists(chat_id: str):
     path = f"/users/{chat_id}"
     return data_exists(path)
 
+# check if user is registered
+def user_is_registered(chat_id: str):
+    nusnet_path = f"/users/{chat_id}/nusnet"
+    email_path = f"/users/{chat_id}/email"
+    return data_exists(nusnet_path) and data_exists(email_path)
+
 # check if user is verified
 def user_is_verified(chat_id: str):
     path = f"/users/{chat_id}/isVerified"
