@@ -5,19 +5,15 @@ from aiogram import types
 from aiogram.enums import ParseMode
 from aiogram.filters import CommandStart, Command
 from aiogram.fsm.context import FSMContext
-from aiogram.types import Message, CallbackQuery
+from aiogram.types import Message
 from aiogram.types.error_event import ErrorEvent
 
-import caches, config, database_functions, utils, bot_messages
+import database_functions, bot_messages
 from config import dp, bot, booking_router, logger
 from bots.BookingBot import BookingBot
 from bots.CancellationBot import CancellationBot
-from bots.FBSProcessBot import FBSProcessBot
 from bots.OnboardingBot import OnboardingBot
-from bots.ScheduleBot import ScheduleBot
 
-from datetime import datetime, timedelta
-import pytz
 
 # '/start' command 
 @dp.message(CommandStart())
@@ -81,7 +77,7 @@ async def delete(message: Message, state: FSMContext) -> None:
     
 
 ## Test Commands to be deleted before production
-# # '/web' command: use for testing web automation, delete when all done 
+# '/web' command: use for testing web automation, delete when all done 
 # @dp.message(Command('web'))
 # async def web(message: Message, state: FSMContext) -> None:
 #     await state.set_state(FBSProcessBot.start_of_web_booking)
@@ -89,11 +85,11 @@ async def delete(message: Message, state: FSMContext) -> None:
 #     await state.update_data(
 #         booker_name='Benjamin Seow',
 #         telehandle='benjaminseowww',
-#         booker_room_number= '17-16',
-#         buddy_name= 'test',
-#         buddy_room_number='04-23',
-#         buddy_telegram_handle='abc',
-#         booking_date='28/06/2024',
+#         booker_room_number= '08-25',
+#         buddy_name= 'Hamzi Roslan',
+#         buddy_room_number='07-14',
+#         buddy_telegram_handle='zzimha',
+#         booking_date='18/07/2024',
 #         booking_time_range='1200-1730',
 #         booking_start_time='1600',
 #         booking_duration='60'

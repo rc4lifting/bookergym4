@@ -315,8 +315,8 @@ class BookingBot(StatesGroup):
 
         # Call FBSProcessBot for booking on FBS
         try: 
-            #new_state = await FBSProcessBot.start_web_booking(message, state)
-            #state = new_state
+            new_state = await FBSProcessBot.start_web_booking(message, state)
+            state = new_state
             print("in web booking try block")
         except SlotTakenException as e: 
             logger.error(f"WEB BOOKING SlotTakenException: {e}")
@@ -339,7 +339,7 @@ class BookingBot(StatesGroup):
             web_booking_success = True
 
             data = await state.get_data()
-            booking_details["utownfbsBookingId"] = "test123455555" #data.get('utownfbsBookingId')
+            booking_details["utownfbsBookingId"] = data.get('utownfbsBookingId')
             database_functions.create_data(f"/slots", booking_details, True)
             
         # Call Schedule for booking on FBS

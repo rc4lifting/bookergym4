@@ -9,6 +9,8 @@ lib/
 
 # virtual env
 myenv/
+vpsenv/
 
-boookergym4.code-workspace
+# IDE files
+bookergym4.code-workspace
 .DS_Store

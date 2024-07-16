@@ -36,21 +36,20 @@ class FBSProcessBot(StatesGroup):
         booker_name = data['booker_name'] 
         date_obj = datetime.strptime(data['booking_date'], "%d/%m/%Y")
         booking_date = date_obj.strftime('%d-%b-%Y')
-        div_avail_date = date_obj.strftime('%m/%d/%Y')
         duration = data['booking_duration']
 
         # the  1800/01/01 is the date used in the portal's options, TODO: debug localize
         real_start_time_datetime = singapore_tz.localize(datetime.strptime(booking_date + " " + data['booking_start_time'], "%d-%b-%Y %H%M"))
         option_start_time_datetime = singapore_tz.localize(datetime.strptime("1800/01/01 " + data['booking_start_time'], "%Y/%m/%d %H%M"))
         start_time = option_start_time_datetime.strftime("%Y/%m/%d %H:%M:%S")
-        option_end_time_datetime = singapore_tz.localize(option_start_time_datetime + timedelta(minutes=int(duration)))
+        option_end_time_datetime = option_start_time_datetime + timedelta(minutes=int(duration))
         end_time = option_end_time_datetime.strftime("%Y/%m/%d %H:%M:%S")
 
         # TODO: nusnet id from verification - coded later 
 
-        # TODO: check time here, send resp message if invalid 
+        # check time here, send resp message if invalid 
         now = datetime.now(singapore_tz)
-        if now + timedelta(minutes=30)> real_start_time_datetime:
+        if now + timedelta(minutes=30) > real_start_time_datetime:
             raise InvalidBookingTimeException("Caught before booking - Booking time is invalid")
 
         async with async_playwright() as playwright:
@@ -59,11 +58,6 @@ class FBSProcessBot(StatesGroup):
 
                 ## start 
                 browser = await playwright.chromium.launch(headless=True, channel="chrome")
-                # context = await browser.new_context(http_credentials={
-                #     'username': utownfbs_login['username'], 
-                #     'password': utownfbs_login['password']
-                # })
-                # page = await context.new_page()
                 page = await browser.new_page()
                 logger.info("booking - browser has been set up")
 
@@ -79,7 +73,7 @@ class FBSProcessBot(StatesGroup):
 
                 logger.info("booking - logged into utownfbs")
 
-                ## select location and date range 
+                ## select location
                 frame = page.frame(url='https://utownfbs.nus.edu.sg/utown/modules/booking/search.aspx')
 
                 if not frame:
@@ -91,23 +85,31 @@ class FBSProcessBot(StatesGroup):
 
                 await frame.locator('select[name="Facility$ctl02"]').select_option(value="32ecb2ef-0600-44b9-97b0-dbf2a1c2bfab")
 
-                # Date Range: Very Unrealiable
-                # change event may or may not happen because of changing it programmically
-                # TODO: doPostBack__ now cant be done inside evaluate script
-                start_input_locator = frame.locator('input[name="StartDate$ctl03"]')
-                start_date_script = """ 
-                (date) => {
-                    const input = document.querySelector('input[name="StartDate$ctl03"]');
-                    input.setAttribute('value', date);
-                }
-                """
-                await frame.evaluate(start_date_script, booking_date)
-                await frame.wait_for_timeout(1000)
-
-                # frame loading after onchange in start date element is unreliable
+                ## Select Start Date:
+                # Select Start Date Input to show calender 
+                await frame.locator('table[id="StartDate"]').locator('input[name="StartDate$ctl03"]').click()
                 await frame.wait_for_load_state('load')
-                await frame.wait_for_timeout(1000)
+                
+                # Wait for calenderFrame to load 
+                await expect(frame.locator('div[id="calendarDiv"]')).to_be_visible()
+                
+                # Select Month and Year
+                calender_frame = frame.frame_locator("#calendarFrame")
+                
+                await calender_frame.locator('select[id="selectMonth"]').select_option(value=f"{date_obj.strftime('%-m')}")
+                await frame.wait_for_load_state('load')
+                
+                await calender_frame.locator('select[id="selectYear"]').select_option(value=f"{date_obj.strftime('%Y')}")
+                await frame.wait_for_load_state('load')
+                
+                # Select Day
+                await calender_frame.locator('table[class="textfont"]').get_by_text(f"{date_obj.strftime('%-d')}").click()
+                
+                # Wait for start date value to load 
+                await frame.wait_for_load_state('load')
+                await frame.wait_for_timeout(10000)
 
+                ## Select End Date 
                 end_date_script = """ 
                 (date) => {
                     document.querySelector('input[name="StartDate$ctl10"]').setAttribute('value', date)
@@ -184,11 +186,6 @@ class FBSProcessBot(StatesGroup):
             try: 
                 ## start 
                 browser = await playwright.chromium.launch(headless=True, channel="chrome")
-                # context = await browser.new_context(http_credentials={
-                #     'username': utownfbs_login['username'], 
-                #     'password': utownfbs_login['password']
-                # })
-                # page = await context.new_page()
                 page = await browser.new_page()
                 logger.info("cancellation - browser has been set up")
 
@@ -203,7 +200,6 @@ class FBSProcessBot(StatesGroup):
                 await page.wait_for_timeout(10000)
 
                 logger.info("cancellation - logged into utownfbs")
-
 
                 ## click 'manage booking'
                 dropdown_menu_locator = page.locator('ul[id="menu_mainMenu:submenu:22"]')
