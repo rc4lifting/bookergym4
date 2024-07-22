@@ -328,8 +328,8 @@ class BookingBot(StatesGroup):
         # Call Schedule for booking on FBS
         if web_booking_success:
             try:
-                new_state = await ScheduleBot.update_schedule(message, state)
-                state = new_state
+                #new_state = await ScheduleBot.update_schedule(message, state)
+                #state = new_state
                 print("in scheduling try block")
             except Exception as e:
                 logger.error(f"Update Schedule Error: {e}")
