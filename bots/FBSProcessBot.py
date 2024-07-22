@@ -55,7 +55,7 @@ class FBSProcessBot(StatesGroup):
                 logger.info("booking - web booking has started")
 
                 ## start 
-                browser = await playwright.chromium.launch(headless=False, channel="chrome")
+                browser = await playwright.chromium.launch(headless=True, channel="chrome")
                 page = await browser.new_page()
                 logger.info("booking - browser has been set up")
 
