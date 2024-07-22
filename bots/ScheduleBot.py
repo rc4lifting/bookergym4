@@ -1,18 +1,13 @@
-import asyncio
-import logging
-import sys
-from os import getenv
-
-from aiogram.fsm.state import StatesGroup, State
-from aiogram.types import Message, CallbackQuery
+from aiogram.fsm.state import StatesGroup
+from aiogram.types import Message
 from aiogram.fsm.context import FSMContext
 from datetime import datetime, timedelta
 
 from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
 
-import caches, config, database_functions, utils
-from config import dp, bot, booking_router, logger
+import database_functions
+from config import logger
 from caches import schedule_gsheet_id, schedule_credentials
 
 class ScheduleBot(StatesGroup): 

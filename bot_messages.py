@@ -12,12 +12,13 @@ START_MESSAGE = "Hello, <b>{}</b>! Looks like we have another gym goer right her
 
 HELP_MESSAGE = "What can this bot do?\n\n" +\
                 "/register - register your email before booking\n" +\
-                "/verify - verify email for authentication\n\n" +\
+                "/verify - verify email for authentication\n" +\
+                "/delete - delete your nus data from our system\n\n" +\
                 "/book - book your gym slot now!\n" +\
-               "/cancel - cancel slots to free them up for others :)\n\n" +\
-               "/schedule - view available time slots here\n\n" +\
-               "/exco - contact the exco on any queries, feedback and damages\n"
-               #"/delete - delete your account and data\n\n" 
+                "/cancel - cancel slots to free them up for others :)\n\n" +\
+                "/schedule - view available time slots here\n\n" +\
+                "/exco - contact the exco on any queries, feedback and damages\n"
+                
 
 EXCO_MESSAGE = "Contact us! we are happy to help!\n" +\
                "Benjamin - @benjaminseowww\n" +\
@@ -78,4 +79,4 @@ DEFAULT_CANCEL_REMARK = "Wrong Booking Timing"
 OTP_EMAIL_SUBJECT = "OTP for RC4Lifting Official Gym Booking Telegram Bot"
 OTP_EMAIL_MESSAGE = "Hello! \n\nYour OTP for the RC4Lifting Official Gym Booking Telegram Bot is:\n\n" +\
                     "{}\n\n" +\
-                    "If you did not request for this OTP, please notify the exco immediately by '/exco' in the telegram bot\n"
+                    "If you did not request for this OTP, please notify the exco immediately by '/exco' in the telegram bot (https://t.me/rc4lifting_bot)\n"

@@ -45,8 +45,6 @@ class FBSProcessBot(StatesGroup):
         option_end_time_datetime = option_start_time_datetime + timedelta(minutes=int(duration))
         end_time = option_end_time_datetime.strftime("%Y/%m/%d %H:%M:%S")
 
-        # TODO: nusnet id from verification - coded later 
-
         # check time here, send resp message if invalid 
         now = datetime.now(singapore_tz)
         if now + timedelta(minutes=30) > real_start_time_datetime:
@@ -57,7 +55,7 @@ class FBSProcessBot(StatesGroup):
                 logger.info("booking - web booking has started")
 
                 ## start 
-                browser = await playwright.chromium.launch(headless=True, channel="chrome")
+                browser = await playwright.chromium.launch(headless=False, channel="chrome")
                 page = await browser.new_page()
                 logger.info("booking - browser has been set up")
 

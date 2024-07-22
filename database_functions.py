@@ -1,5 +1,4 @@
 import firebase_admin
-import asyncio
 
 from firebase_admin import db, credentials
 from datetime import datetime

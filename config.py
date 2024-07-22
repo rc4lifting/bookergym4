@@ -1,10 +1,8 @@
-import asyncio
 import logging
 import sys
-from os import getenv
 import caches
 
-from aiogram import Bot, Dispatcher, html, Router
+from aiogram import Bot, Dispatcher, Router
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 

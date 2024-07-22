@@ -1,7 +1,5 @@
 import asyncio
-from os import getenv
 
-from aiogram import types
 from aiogram.enums import ParseMode
 from aiogram.filters import CommandStart, Command
 from aiogram.fsm.context import FSMContext
@@ -9,7 +7,7 @@ from aiogram.types import Message
 from aiogram.types.error_event import ErrorEvent
 
 import database_functions, bot_messages
-from config import dp, bot, booking_router, logger
+from config import dp, bot, logger
 from bots.BookingBot import BookingBot
 from bots.CancellationBot import CancellationBot
 from bots.OnboardingBot import OnboardingBot
@@ -74,27 +72,6 @@ async def delete(message: Message, state: FSMContext) -> None:
     database_functions.delete_data(f"/users/{message.chat.id}/isVerified")
     await message.answer("User data deleted")
     await state.clear()
-    
-
-## Test Commands to be deleted before production
-# '/web' command: use for testing web automation, delete when all done 
-# @dp.message(Command('web'))
-# async def web(message: Message, state: FSMContext) -> None:
-#     await state.set_state(FBSProcessBot.start_of_web_booking)
-#     await bot.send_message(message.chat.id, "Starting web booking process")
-#     await state.update_data(
-#         booker_name='Benjamin Seow',
-#         telehandle='benjaminseowww',
-#         booker_room_number= '08-25',
-#         buddy_name= 'Hamzi Roslan',
-#         buddy_room_number='07-14',
-#         buddy_telegram_handle='zzimha',
-#         booking_date='18/07/2024',
-#         booking_time_range='1200-1730',
-#         booking_start_time='1600',
-#         booking_duration='60'
-#     )
-#     await FBSProcessBot.start_web_booking(message, state)
 
 
 # global error handling, for unexpected errors

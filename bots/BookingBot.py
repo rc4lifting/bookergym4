@@ -130,23 +130,6 @@ class BookingBot(StatesGroup):
         singapore_tz = pytz.timezone('Asia/Singapore')
         now = datetime.now(singapore_tz)
 
-        # Check if the selected date is the current date and time is past 2300
-        # if selected_date == now.strftime("%d/%m/%Y") and now.hour >= 23:
-        #     await callback_query.message.answer("Current day booking is not available after 2300. Please select another date.")
-            
-        #     # Recreate the date options excluding the current day
-        #     date_options = {}
-        #     current_date = now + timedelta(days=1)
-        #     next_sunday = now + timedelta(days=(6 - now.weekday() + 7))
-        #     while current_date <= next_sunday:
-        #         date_str = current_date.strftime("%d/%m/%Y")
-        #         display_str = current_date.strftime("%d %B %Y")
-        #         date_options[display_str] = date_str
-        #         current_date += timedelta(days=1)
-
-        #     await callback_query.message.answer("Please select the booking date:", reply_markup=utils.create_inline(date_options, row_width=2))
-        #     return
-
         await state.update_data(booking_date=selected_date)
         await state.set_state(BookingBot.get_booking_time_range)
 

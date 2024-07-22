@@ -1,16 +1,14 @@
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
-from aiogram.enums import ParseMode
 
-from config import cancellation_router, logger, bot, dp, ExpectedElementNotFound
-import database_functions, utils, bot_messages
+from config import cancellation_router, logger, bot, ExpectedElementNotFound
+import database_functions, utils
 from bots.FBSProcessBot import FBSProcessBot
 from bots.ScheduleBot import ScheduleBot
 from bot_messages import CANCEL_NOSLOTS_MESSAGE, BOOKING_DATETIME_STRING
 
-from playwright.async_api import async_playwright, expect
-from datetime import datetime, timezone, timedelta
+from datetime import datetime
 import pytz
 
 
