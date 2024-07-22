@@ -105,7 +105,7 @@ class FBSProcessBot(StatesGroup):
                 
                 # Wait for start date value to load 
                 await frame.wait_for_load_state('load')
-                await frame.wait_for_timeout(10000)
+                await frame.wait_for_timeout(15000)
 
                 ## Select End Date 
                 end_date_script = """ 
