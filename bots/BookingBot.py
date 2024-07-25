@@ -322,7 +322,8 @@ class BookingBot(StatesGroup):
             web_booking_success = True
 
             data = await state.get_data()
-            booking_details["utownfbsBookingId"] = data.get('utownfbsBookingId')
+            booking_details["utownfbsBookingId"] = "ms3_test12345"
+            #data.get('utownfbsBookingId')
             database_functions.create_data(f"/slots", booking_details, True)
             
         # Call Schedule for booking on FBS
