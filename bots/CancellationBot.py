@@ -75,8 +75,8 @@ class CancellationBot(StatesGroup):
             try:
                 # TODO: implement cancel_slot
                 print("in web cancelltation try block")
-                new_state = await FBSProcessBot.cancel_slot(message, state)
-                state = new_state
+                #new_state = await FBSProcessBot.cancel_slot(message, state)
+                #state = new_state
             except ExpectedElementNotFound as e: 
                 logger.error(f"WEB CANCELLATION ExpectedElementNotFound: {e}")
                 await message.answer(f"An error has occurred when cancelling your slot:\n\n{booking_details_string}\n\nSend /exco to report the issue to us")
@@ -96,8 +96,8 @@ class CancellationBot(StatesGroup):
             # call ScheduleBot to remove from sheet
             try:
                 print("in remove from schedule try block")
-                #new_state = await ScheduleBot.remove_from_schedule(message, state)
-                #state = new_state
+                new_state = await ScheduleBot.remove_from_schedule(message, state)
+                state = new_state
             except Exception as e:
                 logger.error(f"Removing From Schedule Error: {e}")
                 data = await state.get_data()
